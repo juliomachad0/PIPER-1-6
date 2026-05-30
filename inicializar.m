@@ -27,7 +27,9 @@ rootDir = fileparts(mfilename('fullpath'));
 addpath(fullfile(rootDir, 'modelos', 'Não Linear'));  % sfunction_piper, aerodynamics, dyn_rigidbody, etc.
 addpath(fullfile(rootDir, 'modelos', 'Linear'));       % MATRIZES.m (A_long, B_long, etc.)
 addpath(fullfile(rootDir, 'guiagem'));                 % plot3d_voo, etc.
-
+addpath(fullfile(rootDir, 'inertial_navigation'));                 % INS sensors 
+addpath(fullfile(rootDir, 'Xplane', 'XPlaneConnect-master', 'MATLAB')); %adicionando funções do xplane
+addpath(fullfile(rootDir, 'Xplane'));
 %% ========== Parametros da Aeronave ==========
 % Carrega par_aero, par_prop, par_gen
 load('Sato_longitudinal_Piper_1_6.mat');
@@ -173,6 +175,8 @@ INPUTS    = Ue';   % [delta_T, delta_e, delta_a, delta_r]
 TrimInput = Ue';   % Alias (alguns blocos usam TrimInput)
 Kp_sas    = Kp;    % Alias do SAS de rolamento (Kp = 0.119)
 
+%% ========== Inicialização dos sensores ===========
+ins_init_block;
 %% ========== Pronto ==========
 disp('--- Workspace carregado (guiagem + controle) ---');
 disp(['  Waypoints: ' num2str(size(WPs,1)) ' pontos']);

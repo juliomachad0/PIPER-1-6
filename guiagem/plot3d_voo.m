@@ -7,7 +7,7 @@
 % Uso: >> plot3d_voo
 
 fprintf('\n========== PLOT 3D DO VOO ==========\n');
-
+close all;
 %% ========== Localizar dados de posição ==========
 pos_data = [];
 t_pos = [];
