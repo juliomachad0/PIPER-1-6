@@ -175,7 +175,7 @@ INPUTS    = Ue';   % [delta_T, delta_e, delta_a, delta_r]
 TrimInput = Ue';   % Alias (alguns blocos usam TrimInput)
 Kp_sas    = Kp;    % Alias do SAS de rolamento (Kp = 0.119)
 
-%% ========== Inicialização dos sensores ===========
+%% ========== Inertial Navigation Block Initialization ===========
 ins_init_block;
 %% ========== Pronto ==========
 disp('--- Workspace carregado (guiagem + controle) ---');
@@ -185,3 +185,17 @@ disp(['  VT_eq:     ' num2str(norm(Xe(1:3))) ' m/s']);
 disp(['  Alt_eq:    ' num2str(-Xe(12)) ' m']);
 fprintf('\n  Para GUIAGEM:  open(''guiagem/NL_guidance.slx''), simular, depois plot3d_voo\n');
 fprintf('  Para CONTROLE: open(''controle/Nao Linear/modeloNL1.slx''), depois simular\n');
+%% Open UI
+init_guidanceUI = true; % true or false - rodar ou não gui_waypoints
+% o códiog abaixo é destinado a evitar loop infinito (gui_waypoints também
+% chama inicializar) e perda de varivael (clear no inicio de inicializar.m)
+launched = getappdata(0, 'gui_waypoints_launched');
+if isempty(launched)
+    launched = false;
+end
+if init_guidanceUI && ~launched
+    setappdata(0, 'gui_waypoints_launched', true);
+    disp('Iniciando UI - gui_waypoints.m ...')
+    gui_waypoints;
+end
+

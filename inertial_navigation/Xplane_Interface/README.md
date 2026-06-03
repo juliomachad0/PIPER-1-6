@@ -1,0 +1,1 @@
+# Interface for sending commands and receiving data from X-Plane.

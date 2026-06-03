@@ -52,5 +52,4 @@ disp(['  h_ref:  ' num2str(h_ref) ' m']);
 disp(['  VT_ref: ' num2str(VT_ref) ' m/s']);
 disp(['  psi_ref: ' num2str(rad2deg(psi_ref)) ' deg']);
 disp(' ');
-disp('  Proximo passo: abrir xplane_autopilot.slx e simular');
-disp('  (Se primeira vez, rode: criar_modelo_xplane)');
+disp('  Proximo passo: abrir xplane_tests.slx e simular');
