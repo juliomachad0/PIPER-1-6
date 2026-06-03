@@ -1,39 +1,30 @@
+%% Funcao Principal
 function sensors = ins_init_sensors()
     disp("---------- Sensors ----------")
     %INIT_SENSORS Inicializa e consolida parâmetros do sistema e sensores.
     % Publica UMA ÚNICA variável no Base Workspace: 'sensors'.
-
-    % =========================
-    % (0) Configuração local (defina aqui e pronto)
-    % =========================
+    %% (0) Configuração local
     Ts = 1/200;          % sample time do PA/IMU
     Fs = 1/Ts;
     seed_master = 1;     % seed mestre do experimento (reprodutibilidade)
-
-    % =========================
-    % (1) Estrutura do sistema
-    % =========================
+    %% (1) Estrutura do sistema
     sensors = struct();
     sensors.sys = struct();
     sensors.sys.Ts = Ts;
     sensors.sys.Fs = Fs;
     sensors.sys.seed_master = seed_master;
-    % seeds específicos para cada sensor
-    sensors = seeds_generator(sensors);
-    
-    %% =========================
-    % Inicializando sensores
+    sensors.seeds = struct();
+    %% seeds específicos para cada sensor
+    sensors = icm20689_seeds_generator(sensors); % ICM20689
+    %% Inicializando sensores
     sensors.icm20689 = ins_init_icm20689(sensors.seeds.icm20689); % ICM20689 - ICM
-    % =========================
-    %init_xplane.m; % iniciliazr o xplane - fecha anterior e seta freq. :20hz
-    % =========================
-    % (4) Publica uma única vez
+    %% Publica no workspace
     assignin('base', 'sensors', sensors);
     clear all;
     disp("-----------------------------")
 end
-
-function sensors = seeds_generator(sensors)
+%% SEEDS ICM20689
+function sensors = icm20689_seeds_generator(sensors)
     % =========================
     % (2) Seeds globais (separa parâmetros de ruído)
     % =========================
@@ -55,7 +46,6 @@ function sensors = seeds_generator(sensors)
     % =========================
     % (4) Seeds por sensor/componente
     % =========================
-    sensors.seeds = struct();
     sensors.seeds.icm20689 = struct();
 
     % ---- ICM20689 / GYRO ----
@@ -76,3 +66,4 @@ function sensors = seeds_generator(sensors)
         seed_noise + OFF.icm20689 + OFF.acc + 3  ... % Z
     ];
 end
+%% SEEDS BMI055

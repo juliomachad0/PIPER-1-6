@@ -47,9 +47,9 @@ function status = ins_send_xplane(u)
         rudder   = max(-1, min(1, rudder));
         throttle = max(0, min(1, throttle));
 
-        % XPC: [elevator, aileron, rudder, throttle, gear, flaps]
+        % XPC: [elevator, aileron, rudder, throttle, gear (0 up, 1 down), flaps]
         % -998 = "nao alterar"
-        ctrl_data = [elevator, aileron, rudder, throttle, -998, -998];
+        ctrl_data = [elevator, aileron, rudder, throttle, 0, -998];
 
         sendCTRL(ctrl_data, 0, GlobalSocket);
         status = 1;

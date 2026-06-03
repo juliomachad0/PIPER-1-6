@@ -1,4 +1,4 @@
-function ins_initial_state_xplane()
+function ins_initial_state_xplane_test()
 %Teleporta a aeronave para a condicao inicial de voo
     global GlobalSocket;
     import XPlaneConnect.*;
@@ -28,13 +28,16 @@ function ins_initial_state_xplane()
         % lla(2) - longitude
         % lla(3) - elevation-Mean Sea Level - MSL
         % lla(4) - above ground level - AGL
+        h0 = 500; %WPs(1,3);
+        v0 = 30; %WPs(1,4);
+        %
         elev_msl = lla(3); % Mean Sea Level elevation
         y_agl = lla(4); %
         ground_msl = elev_msl - y_agl;
-        target_msl = ground_msl + WPs(1,3); % final height = WPs(1,3) above ground
+        target_msl = ground_msl + h0; % final height = WPs(1,3) above ground
         sendPOSI([lla(1), lla(2), target_msl, 0, 0, psi0, 0], 0, GlobalSocket);
         pause(0.5);
-        abs_V0 = WPs(1,4);
+        abs_V0 = v0;
         hdg_rad = psi0 * pi/180;
         sendDREF('sim/flightmodel/position/local_vx',  abs_V0*sin(hdg_rad), GlobalSocket);
         sendDREF('sim/flightmodel/position/local_vy',  0,                GlobalSocket);
