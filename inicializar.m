@@ -186,9 +186,10 @@ disp(['  Alt_eq:    ' num2str(-Xe(12)) ' m']);
 fprintf('\n  Para GUIAGEM:  open(''guiagem/NL_guidance.slx''), simular, depois plot3d_voo\n');
 fprintf('  Para CONTROLE: open(''controle/Nao Linear/modeloNL1.slx''), depois simular\n');
 %% Open UI
-init_guidanceUI = true; % true or false - rodar ou não gui_waypoints
-% o códiog abaixo é destinado a evitar loop infinito (gui_waypoints também
-% chama inicializar) e perda de varivael (clear no inicio de inicializar.m)
+init_guidanceUI = true; % true or false - rodar ou não gui_waypoints.m
+% O códiog abaixo é destinado a evitar loop infinito (gui_waypoints também
+% chama inicializar) e perda de varivael (clear no inicio de inicializar)
+% Se não funcionar, rode gui_waypoints manualmente após rodar inicializar
 launched = getappdata(0, 'gui_waypoints_launched');
 if isempty(launched)
     launched = false;
