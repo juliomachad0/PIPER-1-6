@@ -330,7 +330,10 @@ function gui_waypoints()
             assignin('base', 'R_accept', R_accept_val);
 
             % Plotar resultados
+            close all;
             evalin('base', 'plot3d_voo');
+            % Plotar resultados do Xplane
+            evalin('base', 'plot3d_voo_xplane');
 
             lblStatus.Text = 'Simulação concluída com sucesso!';
             lblStatus.FontColor = [0 0.5 0];
