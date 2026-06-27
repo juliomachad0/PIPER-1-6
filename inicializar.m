@@ -25,22 +25,14 @@ clear; clc;
 %% ========== Paths ==========
 rootDir = fileparts(mfilename('fullpath'));
 addpath(fullfile(rootDir, 'modelos', 'Não Linear'));  % sfunction_piper, aerodynamics, dyn_rigidbody, etc.
-addpath(fullfile(rootDir, 'modelos', 'Linear'));       % MATRIZES.m (A_long, B_long, etc.)
 addpath(fullfile(rootDir, 'guiagem'));                 % plot3d_voo, etc.
-addpath(fullfile(rootDir, 'inertial_navigation'));                 % INS sensors 
-addpath(fullfile(rootDir, 'Xplane', 'XPlaneConnect-master', 'MATLAB')); %adicionando funções do xplane
-addpath(fullfile(rootDir, 'Xplane'));
+addpath(fullfile(rootDir, 'navigation'));                 % navigation block
+addpath(fullfile(rootDir, 'xplane','xplane_Interface','interface')); % função realizam a conexão
 %% ========== Parametros da Aeronave ==========
 % Carrega par_aero, par_prop, par_gen
 load('Sato_longitudinal_Piper_1_6.mat');
-
-%% ========== Matrizes do Modelo Linear ==========
-% Carrega A_long, B_long, C_long, D_long, A_lat, B_lat, C_lat, D_lat
-MATRIZES;
-
 %% ========== Estado de Equilibrio ==========
 equilibrium;  % Define Xe (12x1) e Ue (4x1)
-
 %% ========== Verificacao do Trim ==========
 % Checa se as derivadas no ponto de equilibrio sao ~zero
 Xp0 = dyn_rigidbody(0, Xe, Ue, par_gen, par_aero, par_prop);
@@ -177,6 +169,8 @@ Kp_sas    = Kp;    % Alias do SAS de rolamento (Kp = 0.119)
 
 %% ========== Inertial Navigation Block Initialization ===========
 ins_init_block;
+%% ========== Inicia e configura conexão com Xplane ===========
+ins_init_xplane;
 %% ========== Pronto ==========
 disp('--- Workspace carregado (guiagem + controle) ---');
 disp(['  Waypoints: ' num2str(size(WPs,1)) ' pontos']);
@@ -185,18 +179,5 @@ disp(['  VT_eq:     ' num2str(norm(Xe(1:3))) ' m/s']);
 disp(['  Alt_eq:    ' num2str(-Xe(12)) ' m']);
 fprintf('\n  Para GUIAGEM:  open(''guiagem/NL_guidance.slx''), simular, depois plot3d_voo\n');
 fprintf('  Para CONTROLE: open(''controle/Nao Linear/modeloNL1.slx''), depois simular\n');
-%% Open UI
-init_guidanceUI = true; % true or false - rodar ou não gui_waypoints.m
-% O códiog abaixo é destinado a evitar loop infinito (gui_waypoints também
-% chama inicializar) e perda de varivael (clear no inicio de inicializar)
-% Se não funcionar, rode gui_waypoints manualmente após rodar inicializar
-launched = getappdata(0, 'gui_waypoints_launched');
-if isempty(launched)
-    launched = false;
-end
-if init_guidanceUI && ~launched
-    setappdata(0, 'gui_waypoints_launched', true);
-    disp('Iniciando UI - gui_waypoints.m ...')
-    gui_waypoints;
-end
+
 
