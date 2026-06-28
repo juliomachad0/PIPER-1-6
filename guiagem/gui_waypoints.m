@@ -334,6 +334,8 @@ function gui_waypoints()
             evalin('base', 'plot3d_voo');
             % Plotar resultados do Xplane
             evalin('base', 'plot3d_voo_xplane');
+            % Plotar resultados do DBN
+            evalin('base', 'plot3d_voo_DBN');
 
             lblStatus.Text = 'Simulação concluída com sucesso!';
             lblStatus.FontColor = [0 0.5 0];

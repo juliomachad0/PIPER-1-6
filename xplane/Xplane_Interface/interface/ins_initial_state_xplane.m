@@ -48,6 +48,30 @@ function ins_initial_state_xplane()
         clear ins_read_xplane;
 
         fprintf('posicionar_xplane: aeronave em %.1f m, VT=%.1f m/s, hdg=%.1f deg.\n',WPs(1,3), WPs(1,4), psi0);
+        %% Inicializa DBN após posicionamento do X-Plane
+        phi0_rad   = 0;
+        theta0_rad = 0;
+        psi0_rad   = hdg_rad;
+
+        pos0_ned = [ ...
+            WPs(1,1);
+            WPs(1,2);
+            -WPs(1,3) ...
+            ];
+
+        vel0_ned = [ ...
+            abs_V0*cos(psi0_rad);
+            abs_V0*sin(psi0_rad);
+            0 ...
+            ];
+
+        DBN_data_struct = struct();
+        DBN_data_struct.euler0 = [phi0_rad; theta0_rad; psi0_rad];
+        DBN_data_struct.pos0_ned = pos0_ned;
+        DBN_data_struct.vel0_ned = vel0_ned;
+
+        init_DBN(DBN_data_struct);
+        % ------------------- FIM DBN --------------------------
     catch ME
         disp(['posicionar_xplane: erro - ' ME.message]);
     end
