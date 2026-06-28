@@ -8,11 +8,15 @@
 
 fprintf('\n========== PLOT 3D DO VOO A PARTIR DE DADOS DO XPLANE==========\n');
 %% ========== Localizar dados de posição ==========
+try
 pos_data = out.XplaneSimulationData.signals.values;
+t_pos = out.XplaneSimulationData.time;
 xN = pos_data(:,9);
 xE = pos_data(:,10);
 alt = pos_data(:,4);
-
+catch
+    disp("Error: data not founded to plot")
+end
 %% ========== Figura 1: Trajetória 3D ==========
 figure('Name', 'Trajetória 3D dados Xplane', 'Position', [50 100 800 600]);
 plot3(xE, xN, alt, 'b-', 'LineWidth', 1.5);
