@@ -179,5 +179,3 @@ disp(['  VT_eq:     ' num2str(norm(Xe(1:3))) ' m/s']);
 disp(['  Alt_eq:    ' num2str(-Xe(12)) ' m']);
 fprintf('\n  Para GUIAGEM:  open(''guiagem/NL_guidance.slx''), simular, depois plot3d_voo\n');
 fprintf('  Para CONTROLE: open(''controle/Nao Linear/modeloNL1.slx''), depois simular\n');
-
-
