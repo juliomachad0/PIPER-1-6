@@ -28,6 +28,7 @@ Thumbs.db
 /*
 !/*/
 !/.gitignore
+!/inicializar_UI.m
 
 # Pastas ignoradas
 DH/
