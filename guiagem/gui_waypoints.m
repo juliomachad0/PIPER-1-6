@@ -120,7 +120,7 @@ function gui_waypoints()
         'Text', 'Tempo de simulação:', 'FontSize', 11);
     fldStopTime = uieditfield(fig, 'numeric', ...
         'Position', [panelX+170 yPos 80 22], ...
-        'Value', 200, ...
+        'Value', 60, ...
         'Limits', [10 5000]);
     uilabel(fig, 'Position', [panelX+255 yPos 30 22], 'Text', 's');
 
@@ -336,6 +336,8 @@ function gui_waypoints()
             evalin('base', 'plot3d_voo_xplane');
             % Plotar resultados do DBN
             evalin('base', 'plot3d_voo_DBN');
+            % Plotar os 3 em um só - comparação
+            evalin('base', 'plot_compare_all');
 
             lblStatus.Text = 'Simulação concluída com sucesso!';
             lblStatus.FontColor = [0 0.5 0];
