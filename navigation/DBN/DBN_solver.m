@@ -66,9 +66,13 @@ if reset || ~initialized || new_params_loaded
     vel_state = vel0;
     pos_state = pos0;
 
-    R_acc = quatb_to_Racc(qb_state);
-
-    acc_n_prev = R_acc * acc_b_in - g_ned;
+    Rn2b_q = quatb_to_Rn2b(qb_state);
+    Rb2n_q = Rn2b_q.';
+    
+    % acc_b_in vem do X-Plane já como aceleração translacional,
+    % expressa no corpo. Portanto, apenas transforma corpo -> NED.
+    % tratar quando usar com sensor real
+    acc_n_prev = Rb2n_q * acc_b_in;
 
     gyro_prev = gyro_b_in;
     t_prev = t_now;
@@ -106,10 +110,16 @@ if dt <= 0
 end
 
 %% Propagação do quaternion Farrel
+% troca de sinal necessária para funcionar no xplane.
+if isfield(DBN_params, 'gyro_sign')
+    gyro_sign = DBN_params.gyro_sign;
+else
+    gyro_sign = -1;
+end
 
-wx = gyro_prev(1);
-wy = gyro_prev(2);
-wz = gyro_prev(3);
+wx = gyro_sign * gyro_prev(1);
+wy = gyro_sign * gyro_prev(2);
+wz = gyro_sign * gyro_prev(3);
 
 Omega = [   0,   wz,  -wy,  wx;
           -wz,    0,   wx,  wy;
@@ -132,9 +142,12 @@ pos_state = pos_state + vel_old * dt;
 
 %% Nova aceleração em NED
 
-R_acc = quatb_to_Racc(qb_state);
+Rn2b_q = quatb_to_Rn2b(qb_state);
+Rb2n_q = Rn2b_q.';
 
-acc_n_current = R_acc * acc_b_in - g_ned;
+% acc_b_in já é aceleração translacional no corpo.
+% Não subtrair gravidade novamente. tratar quando usar com sensor real
+acc_n_current = Rb2n_q * acc_b_in;
 
 %% Atualização das memórias
 
@@ -178,17 +191,14 @@ end
 % Matriz usada na transformação da aceleração
 % ========================================================================
 
-function R_acc = quatb_to_Racc(b)
+function Rn2b = quatb_to_Rn2b(b)
 
 b1 = b(1);
 b2 = b(2);
 b3 = b(3);
 b4 = b(4);
 
-% Mantém a mesma convenção validada no seu código final:
-% acc_n = R_acc * acc_b - g_ned
-
-R_acc = [ ...
+Rn2b = [ ...
     b1^2 + b4^2 - b2^2 - b3^2, ...
     2*(b1*b2 - b3*b4), ...
     2*(b1*b3 + b2*b4);

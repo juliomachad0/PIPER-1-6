@@ -70,7 +70,8 @@ function ins_initial_state_xplane()
         DBN_data_struct.pos0_ned = pos0_ned;
         DBN_data_struct.vel0_ned = vel0_ned;
 
-        init_DBN(DBN_data_struct);
+        init_DBN(DBN_data_struct); % DBN
+        init_EKF_DI(DBN_data_struct); % EKF DIRETO
         % ------------------- FIM DBN --------------------------
     catch ME
         disp(['posicionar_xplane: erro - ' ME.message]);

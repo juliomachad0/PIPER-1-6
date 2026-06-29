@@ -57,7 +57,10 @@ function xplane_sensors = ins_read_xplane(~)
             'sim/flightmodel/position/local_z'         % 10: posicao Z OpenGL (South)
             'sim/flightmodel/position/local_ax',       % 11: acceleration x
             'sim/flightmodel/position/local_ay',       % 12: acceleration y
-            'sim/flightmodel/position/local_az'        % 13: acceleration z
+            'sim/flightmodel/position/local_az',       % 13: acceleration z
+            'sim/flightmodel/position/local_vx',       % local_vx = East
+            'sim/flightmodel/position/local_vy',       % local_vy = Up
+            'sim/flightmodel/position/local_vz',       % local_vz = South
         };
         % getDREFs retorna single array (nao cell) — usar indexacao ()
         result = double(getDREFs(drefs, GlobalSocket));
@@ -85,6 +88,16 @@ function xplane_sensors = ins_read_xplane(~)
         aD = -aU_local;
         % Euler angles
         roll = phi; pit = theta; yaw = psi;
+        % velocidade (para os ekfs)
+
+        vE_local = result(14);   % local_vx = East
+        vU_local = result(15);   % local_vy = Up
+        vS_local = result(16);   % local_vz = South
+        % conversão
+        vN = -vS_local;
+        vE =  vE_local;
+        vD = -vU_local;
+
         % R_n2b
         R_roll = [1 0 0; 0 cos(roll) sin(roll);0 -sin(roll) cos(roll)];
         R_pitch = [cos(pit) 0 -sin(pit); 0 1 0; sin(pit) 0 cos(pit)];
@@ -103,7 +116,8 @@ function xplane_sensors = ins_read_xplane(~)
         end
         xN = xN_abs - xN0;
         xE = xE_abs - xE0;
-        xplane_sensors = [VT, theta, q, h, phi, p, psi, r, xN, xE, abx, aby, abz];
+        xplane_sensors = [VT, theta, q, h, phi, p, psi, r, ...
+                          xN, xE, abx, aby, abz, vN, vE, vD];
     catch ME
         disp(['read_xplane: Erro na leitura - ' ME.message]);
     end

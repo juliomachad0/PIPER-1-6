@@ -3,7 +3,9 @@ function DBN_params = init_DBN(xplane_init)
 %
 % Inicializa os parâmetros do DBN a partir da condição inicial efetivamente
 % aplicada no X-Plane.
-%
+% Sinal dos giros para propagação do quaternion Farrel que parametriza Rn2b.
+% Para os sinais p,q,r vindos do X-Plane, a propagação de Rn2b requer sinal
+% trocado
 % Entrada:
 %   xplane_init.euler0    = [phi0; theta0; psi0] [rad]
 %   xplane_init.pos0_ned  = [N0; E0; D0] [m]
