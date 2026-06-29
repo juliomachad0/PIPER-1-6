@@ -37,7 +37,7 @@ plot3(xE(1), xN(1), alt(1), 'go', 'MarkerSize', 12, 'MarkerFaceColor', 'g');
 plot3(xE(end), xN(end), alt(end), 'kx', 'MarkerSize', 12, 'LineWidth', 2);
 
 xlabel('Leste (m)'); ylabel('Norte (m)'); zlabel('Altitude (m)');
-title('Trajetória 3D da Aeronave');
+title('Trajetória 3D da Aeronave - Xplane');
 legend('Trajetória', 'Waypoints', 'Início', 'Fim', 'Location', 'best');
 grid on; axis equal;
 view(30, 25);
@@ -65,7 +65,7 @@ end
 plot(xE(1), xN(1), 'go', 'MarkerSize', 12, 'MarkerFaceColor', 'g');
 plot(xE(end), xN(end), 'kx', 'MarkerSize', 12, 'LineWidth', 2);
 xlabel('Leste (m)'); ylabel('Norte (m)');
-title('Vista Superior (Ground Track)');
+title('Vista Superior (Xplane)');
 grid on; axis equal;
 hold off;
 
@@ -88,7 +88,7 @@ if exist('WPs', 'var')
     end
 end
 ylabel('Altitude (m)');
-title('Altitude ao Longo do Voo');
+title('Altitude ao Longo do Voo - Xplane');
 grid on;
 hold off;
 

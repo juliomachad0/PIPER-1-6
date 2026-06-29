@@ -11,7 +11,9 @@ function gui_waypoints()
 
     %% ========== Inicialização ==========
     rootDir = fileparts(fileparts(mfilename('fullpath')));  % raiz do projeto
-
+    % comunicação xplane
+    global GlobalSocket;
+    import XPlaneConnect.*;
     % Rodar inicializar.m no base workspace (carrega TODOS os parâmetros)
     oldDir = pwd;
     cd(rootDir);
@@ -318,7 +320,7 @@ function gui_waypoints()
                 fldStopTime.Value, size(wp_interp,1));
             drawnow;
 
-            % Carregar modelo e configurar
+            %% Carregar modelo e configurar
             t_stop = fldStopTime.Value;
             modelPath = fullfile(rootDir, 'guiagem', 'NL_guidance.slx');
             load_system(modelPath);
@@ -328,14 +330,28 @@ function gui_waypoints()
             assignin('base', 'out', out);
             assignin('base', 'WPs', wp_data);
             assignin('base', 'R_accept', R_accept_val);
-
-            % Plotar resultados
+            %% PAUSANDO SIMULAÇÃO NO XPLANE
+            if isempty(GlobalSocket)
+                try
+                    GlobalSocket = openUDP('127.0.0.1', 49009);
+                    pauseSim(1, GlobalSocket);
+                    fprintf("Xplane: Simulação Pausada")
+                catch ME
+                    disp(['pausar xplane: falha ao conectar - ' ME.message]);
+                    return
+                end
+            else
+                pauseSim(1, GlobalSocket);
+                fprintf("Xplane: Simulação Pausada")
+            end
+            %% Plotar resultados
             close all;
-            evalin('base', 'plot3d_voo');
+            % Plotar resultados do Modelo Não Linear
+            % evalin('base', 'plot3d_voo');
             % Plotar resultados do Xplane
             evalin('base', 'plot3d_voo_xplane');
             % Plotar resultados do DBN
-            evalin('base', 'plot3d_voo_DBN');
+            % evalin('base', 'plot3d_voo_DBN');
             % Plotar os 3 em um só - comparação
             evalin('base', 'plot_compare_all');
 
