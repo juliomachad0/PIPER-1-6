@@ -1,5 +1,6 @@
 %% ========== Paths do XPlaneConnect ==========
-addpath(fullfile(rootDir, 'Xplane', 'XPlaneConnect-master', 'MATLAB'));
+addpath(fullfile(rootDir, 'xplane', 'Xplane_Interface', 'interface'));
+addpath(fullfile(rootDir, 'xplane', 'XPlaneConnect-master', 'MATLAB'));
 
 
 %% ========== Limpar conexao anterior ==========

@@ -106,7 +106,7 @@ function [sys,x0,str,ts,simStateCompliance]=sfunction_piper(t,x,u,flag,par_gen,p
 
              % Proteger contra NaN/Inf
              if any(~isfinite(sys))
-                 fprintf('SFUNC WARN t=%.6f: NaN/Inf detectado! x=%s u=%s\n', t, mat2str(x',4), mat2str(u',4));
+                 %fprintf('SFUNC WARN t=%.6f: NaN/Inf detectado! x=%s u=%s\n', t, mat2str(x',4), mat2str(u',4));
                  sys(~isfinite(sys)) = 0;
              end
 

@@ -10,8 +10,8 @@ function ins_initial_state_xplane()
             disp(['posicionar_xplane: falha ao conectar - ' ME.message]);
             return;
         end
-    else
-        disp('X-Plane Communication: ins_initial_state_xplane: UDP conection alread exists.')
+    % else
+    %     disp('X-Plane Communication: ins_initial_state_xplane: UDP conection alread exists.')
     end
     WPs = evalin('base','WPs'); %getting initial state (position, velocity)
     try
@@ -21,7 +21,7 @@ function ins_initial_state_xplane()
                     'sim/flightmodel/position/y_agl'};
         lla = double(getDREFs(drefs_lla, GlobalSocket)); %ll: lat - long - MSL
         pauseSim(1, GlobalSocket);
-        pause(0.5);
+        pause(0.2);% anterior pause(0.5);
         psi0 = 0;  % Norte
         % Set the initial position and orientation of the aircraft
         % lla(1) - latitude
@@ -32,9 +32,10 @@ function ins_initial_state_xplane()
         y_agl = lla(4); %
         ground_msl = elev_msl - y_agl;
         target_msl = ground_msl + WPs(1,3); % final height = WPs(1,3) above ground
-        sendPOSI([lla(1), lla(2), target_msl, 0, 0, psi0, 0], 0, GlobalSocket);
-        pause(0.5);
+        sendPOSI([lla(1), lla(2), target_msl, -7, 0, psi0, 0], 0, GlobalSocket);
+        pause(0.2);% anterior pause(0.5);
         abs_V0 = WPs(1,4);
+        fprintf("Velocidade absoluta inicial: %.2f [m/s] n\",abs_V0);
         hdg_rad = psi0 * pi/180;
         sendDREF('sim/flightmodel/position/local_vx',  abs_V0*sin(hdg_rad), GlobalSocket);
         sendDREF('sim/flightmodel/position/local_vy',  0,                GlobalSocket);

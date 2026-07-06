@@ -7,7 +7,7 @@ function xplane_sensors = ins_read_xplane(~)
 %     sensors(1)  = VT    - velocidade aerodinamica (m/s)
 %     sensors(2)  = theta - arfagem (rad)
 %     sensors(3)  = q     - taxa de arfagem (rad/s)
-%     sensors(4)  = h     - altitude MSL (m)
+%     sensors(4)  = h     - altitude AGL % anterior: MSL (m)
 %     sensors(5)  = phi   - rolamento (rad)
 %     sensors(6)  = p     - taxa de rolamento (rad/s)
 %     sensors(7)  = psi   - proa (rad)
@@ -28,7 +28,7 @@ function xplane_sensors = ins_read_xplane(~)
 
     persistent xN0 xE0 initialized;
 
-    xplane_sensors = zeros(1, 13);
+    xplane_sensors = zeros(1, 16);
 %% CONEXÃO COM XPLANE
     % --- Abrir conexao se necessario ---
     if isempty(GlobalSocket)
@@ -50,7 +50,7 @@ function xplane_sensors = ins_read_xplane(~)
             'sim/flightmodel/position/true_airspeed',  % 1: VT (m/s)
             'sim/flightmodel/position/theta',          % 2: pitch (deg)
             'sim/flightmodel/position/Qrad',           % 3: pitch rate (rad/s)
-            'sim/flightmodel/position/elevation',      % 4: altitude MSL (m)
+            'sim/flightmodel/position/y_agl',      % 4: altitude AGL % anterior: MSL (m)
             'sim/flightmodel/position/phi',            % 5: roll (deg)
             'sim/flightmodel/position/Prad',           % 6: roll rate (rad/s)
             'sim/flightmodel/position/psi',            % 7: heading (deg)
@@ -121,6 +121,9 @@ function xplane_sensors = ins_read_xplane(~)
         %% VETOR DE SAÍDA
         xplane_sensors = [VT, theta, q, h, phi, p, psi, r, ...
                           xN, xE, abx, aby, abz, vN, vE, vD];
+        fprintf('VT: %.3f, theta: %.3f, q: %.3f, h: %.3f, phi: %.3f, p: %.3f, psi: %.3f, r: %.3f, xN: %.3f, xE: %.3f, abx: %.3f, aby: %.3f, abz: %.3f, vN: %.3f, vE: %.3f, vD: %.3f\n', ...
+            VT, theta, q, h, phi, p, psi, r, xN, xE, abx, aby, abz, vN, vE, vD);
+
     catch ME
         disp(['ins_read_xplane: Erro na leitura: ' ME.message]);
     end
