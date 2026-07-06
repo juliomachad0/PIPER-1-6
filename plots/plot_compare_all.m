@@ -1,4 +1,4 @@
-%% plot_compare_navigation_all.m
+%% plot_compare_all.m
 % Comparação configurável entre:
 %   Modelo Matemático
 %   XPlane referência
@@ -12,6 +12,7 @@
 fprintf('\n========== COMPARAÇÃO CONFIGURÁVEL DE NAVEGAÇÃO ==========\n');
 
 %% ===================== ESCOLHA DOS MODELOS =====================
+
 use_modelo        = false;
 use_xplane_ref    = true;
 
@@ -25,6 +26,7 @@ use_ekf_indi      = false;
 use_ekf_indi_em   = false;
 
 %% ===================== CONFIGURAÇÕES VISUAIS ====================
+
 colors.modelo      = [0.000 0.250 1.000];
 colors.xplane      = [1.000 0.000 0.000];
 
@@ -40,6 +42,7 @@ colors.ekf_indi_em = [0.250 0.250 0.250];
 lineWidth = 1.4;
 
 %% ===================== CARREGAR DADOS AUXILIARES =================
+
 WPs_local = [];
 R_accept_local = [];
 
@@ -54,84 +57,117 @@ catch
 end
 
 %% ===================== CARREGAR SÉRIES ==========================
+
 series = struct('name', {}, 'key', {}, 't', {}, 'N', {}, 'E', {}, 'alt', {}, ...
-                'vel', {}, 'VT', {}, 'acc', {}, 'euler', {}, 'color', {});
+                'vel', {}, 'VT', {}, 'acc', {}, 'euler', {}, 'xhat', {}, ...
+                'color', {});
 
 %% Modelo Matemático
+
 if use_modelo
     s = load_model_solution('Y', 'Modelo', 'modelo', colors.modelo);
+
     if ~isempty(s.name)
         series(end+1) = s; %#ok<SAGROW>
     end
 end
 
 %% XPlane referência
+
 if use_xplane_ref
     s = load_xplane_solution('XplaneSimulationData', 'XPlane', 'xplane', colors.xplane);
+
     if ~isempty(s.name)
         series(end+1) = s; %#ok<SAGROW>
     end
 end
 
 %% DBN sem modelagem de erro
+% Mantém a leitura antiga do DBN:
+% 1:3 Euler
+% 4:6 Vel
+% 7:9 Pos NED [N E D]
+% 10:12 Acc
+
 if use_dbn
     s = load_nav_solution({'DBN_Data','DBN_data','BDN_data'}, ...
         'DBN', 'dbn', colors.dbn);
+
     if ~isempty(s.name)
         series(end+1) = s; %#ok<SAGROW>
     end
 end
 
 %% DBN com modelagem de erro
+% Mantém a mesma convenção do DBN sem erro.
+
 if use_dbn_em
     s = load_nav_solution({'DBN_data_with_error','DBN_Data_with_error'}, ...
         'DBN EM', 'dbn_em', colors.dbn_em);
+
     if ~isempty(s.name)
         series(end+1) = s; %#ok<SAGROW>
     end
 end
 
 %% EKF Direto sem modelagem de erro
+% Novo padrão:
+% 1:3 pos_out
+% 4:6 euler_out
+% 7:9 vel_out
+% 10:12 acc_n_out
+% 13:33 xhat_out
+
 if use_ekf_di
-    s = load_nav_solution({'EKF_DI'}, ...
+    s = load_ekf_data_solution({'EKF_DI_data','EKF_DI'}, ...
         'EKF DI', 'ekf_di', colors.ekf_di);
+
     if ~isempty(s.name)
         series(end+1) = s; %#ok<SAGROW>
     end
 end
 
 %% EKF Direto com modelagem de erro
+
 if use_ekf_di_em
-    s = load_nav_solution({'EKF_DI_EM'}, ...
+    s = load_ekf_data_solution({'EKF_DI_EM_data','EKF_DI_EM'}, ...
         'EKF DI EM', 'ekf_di_em', colors.ekf_di_em);
+
     if ~isempty(s.name)
         series(end+1) = s; %#ok<SAGROW>
     end
 end
 
 %% EKF Indireto sem modelagem de erro
+
 if use_ekf_indi
-    s = load_nav_solution({'EKF_INDI'}, ...
+    s = load_ekf_data_solution({'EKF_INDI_data','EKF_INDI'}, ...
         'EKF INDI', 'ekf_indi', colors.ekf_indi);
+
     if ~isempty(s.name)
         series(end+1) = s; %#ok<SAGROW>
     end
 end
 
 %% EKF Indireto com modelagem de erro
+
 if use_ekf_indi_em
-    s = load_nav_solution({'EKF_INDI_EM'}, ...
+    s = load_ekf_data_solution({'EKF_INDI_EM_data','EKF_INDI_EM'}, ...
         'EKF INDI EM', 'ekf_indi_em', colors.ekf_indi_em);
+
     if ~isempty(s.name)
         series(end+1) = s; %#ok<SAGROW>
     end
 end
+
+%% Verificação
 
 if isempty(series)
     error('Nenhuma série foi carregada. Verifique flags e nomes em out.');
 end
 
 %% ===================== REFERÊNCIA PARA ERROS =====================
+
 idx_ref = find(strcmp({series.key}, 'xplane'), 1);
 
 if isempty(idx_ref)
@@ -139,10 +175,12 @@ if isempty(idx_ref)
 end
 
 %% ===================== FIGURA PRINCIPAL ==========================
+
 figure('Name','Comparação Navegação - Todos os Modelos', ...
        'Position',[80 40 1650 950]);
 
 %% 1 - Trajetória 3D
+
 subplot(3,2,1)
 hold on
 
@@ -164,6 +202,7 @@ view(30,25)
 hold off
 
 %% 2 - Vista Superior
+
 subplot(3,2,2)
 hold on
 
@@ -183,6 +222,7 @@ legend(build_legend(series, WPs_local), 'Location','best')
 hold off
 
 %% 3 - Altitude
+
 subplot(3,2,3)
 hold on
 
@@ -203,6 +243,7 @@ legend({series.name}, 'Location','best')
 hold off
 
 %% 4 - Velocidade escalar
+
 subplot(3,2,4)
 hold on
 
@@ -221,6 +262,7 @@ legend(build_legend_with_vt(series), 'Location','best')
 hold off
 
 %% 5 - Erro horizontal contra XPlane
+
 subplot(3,2,5)
 hold on
 
@@ -239,10 +281,10 @@ if ~isempty(idx_ref)
 
         if ~isempty(t_common)
             erro_h = sqrt((N_ref_i - N_i).^2 + (E_ref_i - E_i).^2);
+
             plot(t_common, erro_h, ...
                 'Color', series(k).color, 'LineWidth', lineWidth);
         end
-
     end
 
     grid on
@@ -259,6 +301,7 @@ end
 hold off
 
 %% 6 - Erro de altitude contra XPlane
+
 subplot(3,2,6)
 hold on
 
@@ -276,10 +319,10 @@ if ~isempty(idx_ref)
 
         if ~isempty(t_common)
             erro_alt = alt_ref_i - alt_i;
+
             plot(t_common, erro_alt, ...
                 'Color', series(k).color, 'LineWidth', lineWidth);
         end
-
     end
 
     grid on
@@ -295,9 +338,10 @@ end
 
 hold off
 
-sgtitle('Comparação Modelo Matemático x XPlane x DBN x EKFs')
+sgtitle('XPlane x EKFs')
 
 %% ===================== ESTATÍSTICAS ===============================
+
 fprintf('\n--- Séries carregadas ---\n');
 
 for k = 1:numel(series)
@@ -338,7 +382,9 @@ function s = load_model_solution(fieldName, displayName, keyName, colorValue)
     s.alt = data(:,12);
 
     s.euler = [];
+    s.vel = [];
     s.acc = [];
+    s.xhat = [];
 
     if size(data,2) >= 3
         s.VT = sqrt(data(:,1).^2 + data(:,2).^2 + data(:,3).^2);
@@ -346,7 +392,6 @@ function s = load_model_solution(fieldName, displayName, keyName, colorValue)
         s.VT = [];
     end
 
-    s.vel = [];
     s.color = colorValue;
 
 end
@@ -379,6 +424,7 @@ function s = load_xplane_solution(fieldName, displayName, keyName, colorValue)
     s.VT = data(:,1);
     s.acc = [];
     s.euler = [];
+    s.xhat = [];
     s.color = colorValue;
 
 end
@@ -399,7 +445,6 @@ function s = load_nav_solution(fieldNames, displayName, keyName, colorValue)
             break;
         catch
         end
-
     end
 
     if ~found
@@ -412,23 +457,18 @@ function s = load_nav_solution(fieldNames, displayName, keyName, colorValue)
         return;
     end
 
+    % DBN antigo:
+    % 1:3   euler
+    % 4:6   vel
+    % 7:9   pos [N E D]
+    % 10:12 acc
+
     s.name = displayName;
     s.key = keyName;
     s.t = t;
 
-    if size(data,2) >= 3
-        s.euler = data(:,1:3);
-    else
-        s.euler = [];
-    end
-
-    if size(data,2) >= 6
-        s.vel = data(:,4:6);
-        s.VT = sqrt(s.vel(:,1).^2 + s.vel(:,2).^2 + s.vel(:,3).^2);
-    else
-        s.vel = [];
-        s.VT = [];
-    end
+    s.euler = data(:,1:3);
+    s.vel   = data(:,4:6);
 
     pos = data(:,7:9);
 
@@ -436,16 +476,79 @@ function s = load_nav_solution(fieldNames, displayName, keyName, colorValue)
     s.E = pos(:,2);
 
     D = pos(:,3);
-
-    % Todos DBN/EKF são assumidos em NED:
-    %   pos(:,3) = D, positivo para baixo.
-    % Logo altitude positiva para cima:
     s.alt = -D;
+
+    s.VT = sqrt(s.vel(:,1).^2 + s.vel(:,2).^2 + s.vel(:,3).^2);
 
     if size(data,2) >= 12
         s.acc = data(:,10:12);
     else
         s.acc = [];
+    end
+
+    s.xhat = [];
+    s.color = colorValue;
+
+end
+
+function s = load_ekf_data_solution(fieldNames, displayName, keyName, colorValue)
+
+    s = empty_series();
+
+    found = false;
+
+    for ii = 1:numel(fieldNames)
+
+        fname = fieldNames{ii};
+
+        try
+            [data, t] = get_out_data(fname);
+            found = true;
+            break;
+        catch
+        end
+    end
+
+    if ~found
+        warning('Dados %s não encontrados em out.', displayName);
+        return;
+    end
+
+    if size(data,2) < 12
+        warning('Dados %s encontrados, mas possuem menos de 12 colunas.', displayName);
+        return;
+    end
+
+    % EKF novo:
+    % 1:3    pos_out   = [N E altitude]
+    % 4:6    euler_out = [phi theta psi]
+    % 7:9    vel_out   = [vN vE vD]
+    % 10:12  acc_n_out = [aN aE aD]
+    % 13:33  xhat_out  = estados completos
+
+    pos   = data(:,1:3);
+    euler = data(:,4:6);
+    vel   = data(:,7:9);
+    acc   = data(:,10:12);
+
+    s.name = displayName;
+    s.key = keyName;
+    s.t = t;
+
+    s.N = pos(:,1);
+    s.E = pos(:,2);
+    s.alt = pos(:,3);
+
+    s.euler = euler;
+    s.vel = vel;
+    s.acc = acc;
+
+    s.VT = sqrt(vel(:,1).^2 + vel(:,2).^2 + vel(:,3).^2);
+
+    if size(data,2) >= 33
+        s.xhat = data(:,13:33);
+    else
+        s.xhat = [];
     end
 
     s.color = colorValue;
@@ -487,6 +590,7 @@ function s = empty_series()
         'VT', [], ...
         'acc', [], ...
         'euler', [], ...
+        'xhat', [], ...
         'color', [] ...
     );
 
@@ -556,9 +660,7 @@ function labels = build_legend_with_vt(series)
             else
                 labels{end+1} = series(kk).name; %#ok<AGROW>
             end
-
         end
-
     end
 
 end
@@ -600,9 +702,7 @@ function plot_waypoints_2d(WPs_local, R_accept_local)
                      WPs_local(jj,1) + R_accept_local*sin(th), ...
                      'k--', 'LineWidth', 0.5);
             end
-
         end
-
     end
 
 end
@@ -617,7 +717,6 @@ function plot_altitude_waypoints(WPs_local)
             yline(alt_wps(jj), 'k--', sprintf('%.0f m', alt_wps(jj)), ...
                 'LineWidth', 0.6, 'LabelHorizontalAlignment', 'left');
         end
-
     end
 
 end

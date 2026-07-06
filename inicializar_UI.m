@@ -16,4 +16,5 @@ addpath(fullfile(rootDir, 'plots'));
 %% XPlane Connection
 addpath(fullfile(rootDir, 'xplane','Xplane_Interface','interface'));
 addpath(fullfile(rootDir, 'xplane','XPlaneConnect-master','MATLAB'));
+inicializar;
 gui_waypoints;
