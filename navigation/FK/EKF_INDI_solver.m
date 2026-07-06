@@ -78,7 +78,7 @@ if reset || ~initialized_ID || new_params_loaded
 
     euler_out = x_hat_ID(7:9);
     vel_out   = x_hat_ID(4:6);
-    pos_out   = x_hat_ID(1:3);
+    pos_out   = ekf_pos_output(x_hat_ID(1:3));
     acc_n_out = zeros(3,1);
     xhat_out  = x_hat_ID;
 
@@ -89,7 +89,7 @@ end
 if sample_valid == 0
     euler_out = x_hat_ID(7:9);
     vel_out   = x_hat_ID(4:6);
-    pos_out   = x_hat_ID(1:3);
+    pos_out   = ekf_pos_output(x_hat_ID(1:3));
     acc_n_out = zeros(3,1);
     xhat_out  = x_hat_ID;
     return;
@@ -265,7 +265,7 @@ t_prev_ID = t_now;
 %% Saidas
 euler_out = x_hat_ID(7:9);
 vel_out   = x_hat_ID(4:6);
-pos_out   = x_hat_ID(1:3);      % [N; E; D]
+pos_out   = ekf_pos_output(x_hat_ID(1:3));  % [N; E; altitude]
 acc_n_out = a_hat_n;
 xhat_out  = x_hat_ID;
 
@@ -349,4 +349,16 @@ end
 
 function ang = wrapToPi_local(ang)
 ang = mod(ang + pi, 2*pi) - pi;
+end
+
+function pos_out = ekf_pos_output(pos_ned)
+
+N = pos_ned(1);
+E = pos_ned(2);
+D = pos_ned(3);
+
+altitude = -D;
+
+pos_out = [N; E; altitude];
+
 end
