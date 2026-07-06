@@ -24,13 +24,13 @@ function [euler_out, vel_out, pos_out, acc_n_out, xhat_out] = EKF_INDI_solver( .
 %   acc_n_out = aceleracao estimada em NED
 %   xhat_out  = estado completo 21x1
 
-persistent x_hat_ID
-persistent P_ID
-persistent t_prev_ID
-persistent initialized_ID
-persistent last_reset_token_ID
-persistent next_gps_time_ID
-persistent h0_meas_ID
+persistent x_hat_IEM
+persistent P_IEM
+persistent t_prev_IEM
+persistent initialized_IEM
+persistent last_reset_token_IEM
+persistent next_gps_time_IEM
+persistent h0_meas_IEM
 
 nx = 21;
 I3 = eye(3);
@@ -42,61 +42,61 @@ pos_out   = zeros(3,1);
 acc_n_out = zeros(3,1);
 xhat_out  = zeros(nx,1);
 
-if isempty(initialized_ID)
-    initialized_ID = false;
+if isempty(initialized_IEM)
+    initialized_IEM = false;
 end
 
 if ~isfield(EKF_INDI_params, 'initialized') || ~EKF_INDI_params.initialized
     return;
 end
 
-if isempty(last_reset_token_ID)
-    last_reset_token_ID = -1;
+if isempty(last_reset_token_IEM)
+    last_reset_token_IEM = -1;
 end
 
 new_params_loaded = false;
 if isfield(EKF_INDI_params, 'reset_token')
-    if EKF_INDI_params.reset_token ~= last_reset_token_ID
+    if EKF_INDI_params.reset_token ~= last_reset_token_IEM
         new_params_loaded = true;
-        last_reset_token_ID = EKF_INDI_params.reset_token;
+        last_reset_token_IEM = EKF_INDI_params.reset_token;
     end
 end
 
 %% Inicializacao
-if reset || ~initialized_ID || new_params_loaded
+if reset || ~initialized_IEM || new_params_loaded
 
-    x_hat_ID = EKF_INDI_params.x0;
-    P_ID = EKF_INDI_params.P0;
+    x_hat_IEM = EKF_INDI_params.x0;
+    P_IEM = EKF_INDI_params.P0;
 
-    t_prev_ID = t_now;
-    initialized_ID = true;
+    t_prev_IEM = t_now;
+    initialized_IEM = true;
 
-    next_gps_time_ID = t_now + EKF_INDI_params.gps_period;
+    next_gps_time_IEM = t_now + EKF_INDI_params.gps_period;
 
     % pos_meas_in tipicamente vem como [N; E; h] do X-Plane.
-    h0_meas_ID = pos_meas_in(3);
+    h0_meas_IEM = pos_meas_in(3);
 
-    euler_out = x_hat_ID(7:9);
-    vel_out   = x_hat_ID(4:6);
-    pos_out   = x_hat_ID(1:3);
+    euler_out = x_hat_IEM(7:9);
+    vel_out   = x_hat_IEM(4:6);
+    pos_out   = x_hat_IEM(1:3);
     acc_n_out = zeros(3,1);
-    xhat_out  = x_hat_ID;
+    xhat_out  = x_hat_IEM;
 
     return;
 end
 
 %% Sem amostra valida: mantem estados
 if sample_valid == 0
-    euler_out = x_hat_ID(7:9);
-    vel_out   = x_hat_ID(4:6);
-    pos_out   = x_hat_ID(1:3);
+    euler_out = x_hat_IEM(7:9);
+    vel_out   = x_hat_IEM(4:6);
+    pos_out   = x_hat_IEM(1:3);
     acc_n_out = zeros(3,1);
-    xhat_out  = x_hat_ID;
+    xhat_out  = x_hat_IEM;
     return;
 end
 
 %% Tempo
-dt = t_now - t_prev_ID;
+dt = t_now - t_prev_IEM;
 if dt <= 0
     dt = 0;
 end
@@ -117,13 +117,13 @@ end
 gn = [0; 0; EKF_INDI_params.g0];
 
 %% Separar estados
-p_hat     = x_hat_ID(1:3);
-v_hat     = x_hat_ID(4:6);
-eta_hat   = x_hat_ID(7:9);
-ba_hat    = x_hat_ID(10:12);
-bg_hat    = x_hat_ID(13:15);
-by_hat    = x_hat_ID(16:18);
-alpha_hat = x_hat_ID(19:21);
+p_hat     = x_hat_IEM(1:3);
+v_hat     = x_hat_IEM(4:6);
+eta_hat   = x_hat_IEM(7:9);
+ba_hat    = x_hat_IEM(10:12);
+bg_hat    = x_hat_IEM(13:15);
+by_hat    = x_hat_IEM(16:18);
+alpha_hat = x_hat_IEM(19:21);
 
 %% Corrigir IMU
 den = 1 - alpha_hat;
@@ -154,7 +154,7 @@ else
     a_hat_n = Rbn*f_hat_b + gn;
 end
 
-x_pred = x_hat_ID;
+x_pred = x_hat_IEM;
 x_pred(1:3)   = p_hat + v_hat*dt + 0.5*a_hat_n*dt^2;
 x_pred(4:6)   = v_hat + a_hat_n*dt;
 x_pred(7:9)   = eta_hat + Teta*omega_hat_b*dt;
@@ -195,17 +195,17 @@ G(16:18,13:15) = I3;
 Phi = eye(nx) + F*dt;
 Qd = G*Qw*G'*dt;
 
-P_ID = Phi*P_ID*Phi' + Qd;
-P_ID = 0.5*(P_ID + P_ID');
+P_IEM = Phi*P_IEM*Phi' + Qd;
+P_IEM = 0.5*(P_IEM + P_IEM');
 
-x_hat_ID = x_pred;
+x_hat_IEM = x_pred;
 
 %% Atualizacao auxiliar a 1 Hz
 do_gps_update = false;
-if t_now >= next_gps_time_ID
+if t_now >= next_gps_time_IEM
     do_gps_update = true;
-    while next_gps_time_ID <= t_now
-        next_gps_time_ID = next_gps_time_ID + EKF_INDI_params.gps_period;
+    while next_gps_time_IEM <= t_now
+        next_gps_time_IEM = next_gps_time_IEM + EKF_INDI_params.gps_period;
     end
 end
 
@@ -222,52 +222,52 @@ if do_gps_update
         % Padrao: pos_meas_in = [N; E; h]
         D0 = EKF_INDI_params.pos0_ned(3);
         h_meas = z3_meas;
-        D_meas = D0 - (h_meas - h0_meas_ID);
+        D_meas = D0 - (h_meas - h0_meas_IEM);
     end
 
     z_pos = [N_meas; E_meas; D_meas];
 
     H_pos = [I3 Z3 Z3 Z3 Z3 I3 Z3];
-    y_hat_pos = x_hat_ID(1:3) + x_hat_ID(16:18);
+    y_hat_pos = x_hat_IEM(1:3) + x_hat_IEM(16:18);
     innov_pos = z_pos - y_hat_pos;
 
-    S_pos = H_pos*P_ID*H_pos' + R_pos;
-    K_pos = P_ID*H_pos'/S_pos;
+    S_pos = H_pos*P_IEM*H_pos' + R_pos;
+    K_pos = P_IEM*H_pos'/S_pos;
 
     dx_hat = K_pos*innov_pos;
-    x_hat_ID = x_hat_ID + dx_hat;
-    x_hat_ID(7:9) = wrapToPi_local(x_hat_ID(7:9));
+    x_hat_IEM = x_hat_IEM + dx_hat;
+    x_hat_IEM(7:9) = wrapToPi_local(x_hat_IEM(7:9));
 
-    P_ID = (eye(nx) - K_pos*H_pos)*P_ID*(eye(nx) - K_pos*H_pos)' + K_pos*R_pos*K_pos';
-    P_ID = 0.5*(P_ID + P_ID');
+    P_IEM = (eye(nx) - K_pos*H_pos)*P_IEM*(eye(nx) - K_pos*H_pos)' + K_pos*R_pos*K_pos';
+    P_IEM = 0.5*(P_IEM + P_IEM');
 
     %% Velocidade auxiliar
     z_vel = vel_meas_in;
 
     H_vel = [Z3 I3 Z3 Z3 Z3 Z3 Z3];
-    innov_vel = z_vel - x_hat_ID(4:6);
+    innov_vel = z_vel - x_hat_IEM(4:6);
 
-    S_vel = H_vel*P_ID*H_vel' + R_vel;
-    K_vel = P_ID*H_vel'/S_vel;
+    S_vel = H_vel*P_IEM*H_vel' + R_vel;
+    K_vel = P_IEM*H_vel'/S_vel;
 
     dx_hat_v = K_vel*innov_vel;
-    x_hat_ID = x_hat_ID + dx_hat_v;
-    x_hat_ID(7:9) = wrapToPi_local(x_hat_ID(7:9));
+    x_hat_IEM = x_hat_IEM + dx_hat_v;
+    x_hat_IEM(7:9) = wrapToPi_local(x_hat_IEM(7:9));
 
-    P_ID = (eye(nx) - K_vel*H_vel)*P_ID*(eye(nx) - K_vel*H_vel)' + K_vel*R_vel*K_vel';
-    P_ID = 0.5*(P_ID + P_ID');
+    P_IEM = (eye(nx) - K_vel*H_vel)*P_IEM*(eye(nx) - K_vel*H_vel)' + K_vel*R_vel*K_vel';
+    P_IEM = 0.5*(P_IEM + P_IEM');
 
 end
 
 %% Atualizar tempo
-t_prev_ID = t_now;
+t_prev_IEM = t_now;
 
 %% Saidas
-euler_out = x_hat_ID(7:9);
-vel_out   = x_hat_ID(4:6);
-pos_out   = x_hat_ID(1:3);      % [N; E; D]
+euler_out = x_hat_IEM(7:9);
+vel_out   = x_hat_IEM(4:6);
+pos_out   = x_hat_IEM(1:3);      % [N; E; D]
 acc_n_out = a_hat_n;
-xhat_out  = x_hat_ID;
+xhat_out  = x_hat_IEM;
 
 end
 

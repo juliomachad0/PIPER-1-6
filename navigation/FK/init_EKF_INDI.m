@@ -152,6 +152,7 @@ EKF_INDI_params.reset_token = now;
 assignin('base', 'EKF_INDI_params', EKF_INDI_params);
 
 clear EKF_INDI_solver;
+clear EKF_INDI_EM_solver;
 
 disp('--- EKF_INDI_params inicializado ---');
 fprintf('Euler0 [deg] = [%.3f %.3f %.3f]\n', rad2deg(EKF_INDI_params.euler0));
