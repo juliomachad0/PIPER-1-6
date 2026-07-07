@@ -3,6 +3,7 @@ addpath(fullfile(rootDir, 'navigation', 'plots'));
 %% Adding sensors paths
 addpath(fullfile(rootDir, 'navigation', 'sensors','ICM20689'));
 addpath(fullfile(rootDir, 'navigation', 'sensors','NEO8M'));
+addpath(fullfile(rootDir, 'navigation', 'sensors','IST8310'));
 ins_init_sensors(); % load variables para o modelo e os dados dos sensores
 
 

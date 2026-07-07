@@ -1,5 +1,8 @@
 %% Reset all variables, figures and parameters 
-close all; clear all; clc;
+close all; clear all;
+restoredefaultpath; rehash toolboxcache; close all hidden;
+clear classes; clear functions; clearvars -global; clc;
+
 %% Adding paths - initiating simulation 
 rootDir = fileparts(mfilename('fullpath'));
 addpath(fullfile(rootDir, 'guiagem')); % guidance
@@ -10,6 +13,7 @@ addpath(fullfile(rootDir, 'navigation'));
 addpath(fullfile(rootDir, 'navigation', 'sensors'));
 addpath(fullfile(rootDir, 'navigation', 'sensors','ICM20689'));
 addpath(fullfile(rootDir, 'navigation', 'sensors','NEOM8'));
+addpath(fullfile(rootDir, 'navigation', 'sensors','IST8310'));
 addpath(fullfile(rootDir, 'navigation', 'FK'));
 addpath(fullfile(rootDir, 'navigation', 'DBN'));
 %% Plots

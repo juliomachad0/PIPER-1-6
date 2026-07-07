@@ -20,10 +20,12 @@ function sensors = ins_init_sensors()
     %% seeds específicos para cada sensor
     sensors = icm20689_seeds_generator(sensors); % ICM20689
     sensors = gps_seeds_generator(sensors);      % GPS / GNSS
+    sensors = ist8310_seeds_generator(sensors);  % IST8310 / Magnetometro
 
     %% Inicializando sensores
     sensors.icm20689 = ins_init_icm20689(sensors.seeds.icm20689); % ICM20689 - ICM
     sensors.gps      = ins_init_gps(sensors.seeds.gps);           % u-blox NEO-M8
+    sensors.ist8310  = ins_init_ist8310(sensors.seeds.ist8310);   % magnetometro
 
     %% Publica no workspace
     assignin('base', 'sensors', sensors);
@@ -110,4 +112,24 @@ sensors.seeds.gps.noise_bias = [ ...
     ];
 
 end
-%% SEEDS BMI055
+%% SEEDS IST8310
+function sensors = ist8310_seeds_generator(sensors)
+
+    seed_master = sensors.sys.seed_master;
+    seed_params = seed_master + 1000;
+    seed_noise  = seed_master + 2000;
+
+    OFF.ist8310 = 400;
+    OFF.mag     = 10;
+
+    sensors.seeds.ist8310 = struct();
+    sensors.seeds.ist8310.mag = struct();
+
+    sensors.seeds.ist8310.mag.params = seed_params + OFF.ist8310 + OFF.mag;
+
+    sensors.seeds.ist8310.mag.noise = [ ...
+        seed_noise + OFF.ist8310 + OFF.mag + 1, ... % X
+        seed_noise + OFF.ist8310 + OFF.mag + 2, ... % Y
+        seed_noise + OFF.ist8310 + OFF.mag + 3  ... % Z
+    ];
+end
