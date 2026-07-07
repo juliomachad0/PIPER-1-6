@@ -3,10 +3,12 @@ function sensors = ins_init_sensors()
     disp("---------- Sensors ----------")
     %INIT_SENSORS Inicializa e consolida parâmetros do sistema e sensores.
     % Publica UMA ÚNICA variável no Base Workspace: 'sensors'.
+
     %% (0) Configuração local
     Ts = 1/200;          % sample time do PA/IMU
     Fs = 1/Ts;
-    seed_master = 1;     % seed mestre do experimento (reprodutibilidade)
+    seed_master = 1;     % seed mestre do experimento
+
     %% (1) Estrutura do sistema
     sensors = struct();
     sensors.sys = struct();
@@ -14,15 +16,21 @@ function sensors = ins_init_sensors()
     sensors.sys.Fs = Fs;
     sensors.sys.seed_master = seed_master;
     sensors.seeds = struct();
+
     %% seeds específicos para cada sensor
     sensors = icm20689_seeds_generator(sensors); % ICM20689
+    sensors = gps_seeds_generator(sensors);      % GPS / GNSS
+
     %% Inicializando sensores
     sensors.icm20689 = ins_init_icm20689(sensors.seeds.icm20689); % ICM20689 - ICM
+    sensors.gps      = ins_init_gps(sensors.seeds.gps);           % u-blox NEO-M8
+
     %% Publica no workspace
     assignin('base', 'sensors', sensors);
     clear all;
     disp("-----------------------------")
 end
+
 %% SEEDS ICM20689
 function sensors = icm20689_seeds_generator(sensors)
     % =========================
@@ -65,5 +73,41 @@ function sensors = icm20689_seeds_generator(sensors)
         seed_noise + OFF.icm20689 + OFF.acc + 2, ... % Y
         seed_noise + OFF.icm20689 + OFF.acc + 3  ... % Z
     ];
+end
+
+%% SEEDS GPS/GNSS - u-blox NEO-M8
+function sensors = gps_seeds_generator(sensors)
+
+seed_master = sensors.sys.seed_master;
+seed_params = seed_master + 1000;
+seed_noise  = seed_master + 2000;
+
+OFF.gps = 300;
+
+sensors.seeds.gps = struct();
+
+sensors.seeds.gps.params = seed_params + OFF.gps;
+
+% Ruído branco de posição NED
+sensors.seeds.gps.noise_pos = [ ...
+    seed_noise + OFF.gps + 1, ... % N
+    seed_noise + OFF.gps + 2, ... % E
+    seed_noise + OFF.gps + 3  ... % D
+    ];
+
+% Ruído branco de velocidade NED
+sensors.seeds.gps.noise_vel = [ ...
+    seed_noise + OFF.gps + 4, ... % vN
+    seed_noise + OFF.gps + 5, ... % vE
+    seed_noise + OFF.gps + 6  ... % vD
+    ];
+
+% Ruído unitário para o bias Gauss-Markov
+sensors.seeds.gps.noise_bias = [ ...
+    seed_noise + OFF.gps + 7, ... % bias N
+    seed_noise + OFF.gps + 8, ... % bias E
+    seed_noise + OFF.gps + 9  ... % bias D
+    ];
+
 end
 %% SEEDS BMI055

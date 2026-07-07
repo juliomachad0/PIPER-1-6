@@ -9,6 +9,7 @@ addpath(fullfile(rootDir, 'modelos', 'Não Linear'));
 addpath(fullfile(rootDir, 'navigation'));
 addpath(fullfile(rootDir, 'navigation', 'sensors'));
 addpath(fullfile(rootDir, 'navigation', 'sensors','ICM20689'));
+addpath(fullfile(rootDir, 'navigation', 'sensors','NEOM8'));
 addpath(fullfile(rootDir, 'navigation', 'FK'));
 addpath(fullfile(rootDir, 'navigation', 'DBN'));
 %% Plots
