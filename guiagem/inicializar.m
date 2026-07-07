@@ -20,7 +20,7 @@
 % NOTA: O modelo usa sfunction_piper (21 outputs, DirFeedthrough=0).
 %       Mesmo arquivo usado em ambos os modelos Simulink.
 
-clear; clc;
+%clear; clc;
 
 %% ========== Paths ==========
 rootDir = fileparts(mfilename('fullpath'));

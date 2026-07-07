@@ -1,4 +1,4 @@
-function [euler_out, vel_out, pos_out, acc_n_out, xhat_out] = EKF_INDI_solver( ...
+function [euler_out, vel_out, pos_out, acc_n_out, xhat_out] = EKF_INDI_EM_solver( ...
     acc_b_in, gyro_b_in, pos_meas_in, vel_meas_in, reset, sample_valid, t_now, EKF_INDI_params)
 % EKF_INDI_solver
 %
@@ -78,7 +78,7 @@ if reset || ~initialized_IEM || new_params_loaded
 
     euler_out = x_hat_IEM(7:9);
     vel_out   = x_hat_IEM(4:6);
-    pos_out   = x_hat_IEM(1:3);
+    pos_out   = ekf_pos_output(x_hat_IEM(1:3));
     acc_n_out = zeros(3,1);
     xhat_out  = x_hat_IEM;
 
@@ -89,7 +89,7 @@ end
 if sample_valid == 0
     euler_out = x_hat_IEM(7:9);
     vel_out   = x_hat_IEM(4:6);
-    pos_out   = x_hat_IEM(1:3);
+    pos_out   = ekf_pos_output(x_hat_IEM(1:3));
     acc_n_out = zeros(3,1);
     xhat_out  = x_hat_IEM;
     return;
@@ -265,7 +265,7 @@ t_prev_IEM = t_now;
 %% Saidas
 euler_out = x_hat_IEM(7:9);
 vel_out   = x_hat_IEM(4:6);
-pos_out   = x_hat_IEM(1:3);      % [N; E; D]
+pos_out   = ekf_pos_output(x_hat_IEM(1:3));  % [N; E; altitude]
 acc_n_out = a_hat_n;
 xhat_out  = x_hat_IEM;
 
@@ -349,4 +349,16 @@ end
 
 function ang = wrapToPi_local(ang)
 ang = mod(ang + pi, 2*pi) - pi;
+end
+
+function pos_out = ekf_pos_output(pos_ned)
+
+N = pos_ned(1);
+E = pos_ned(2);
+D = pos_ned(3);
+
+altitude = -D;
+
+pos_out = [N; E; altitude];
+
 end
