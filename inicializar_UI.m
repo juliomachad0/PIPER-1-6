@@ -19,3 +19,14 @@ assignin('base','range_time_without_correction',range_time_without_correction);
 %% Initiating simulation
 inicializar; % Start parameters, models, functions and XPlane connection
 gui_waypoints; % initiate UI to choose waypoints. 
+%% PONTOS UTILIZADOS NO TESTE
+% XN   | YE
+%   0  | 0
+% 300  | 0
+% 500  | 100
+% 500  | 400
+% 300  | 500
+%   0  | 500
+% altitude constante a 100 m
+% velocidade constante a 15 m/s
+%

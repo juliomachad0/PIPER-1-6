@@ -223,6 +223,22 @@ P_IEM = 0.5*(P_IEM + P_IEM');
 
 x_hat_IEM = x_pred;
 
+%% Consideração ou não de medida de correção
+correction_allowed = true;
+
+range_no_corr = EKF_INDI_params.range_time_without_correction;
+
+for kk = 1:size(range_no_corr,1)
+    ti = range_no_corr(kk,1);
+    tf = range_no_corr(kk,2);
+
+    if ~(ti == 0 && tf == 0)
+        if t_now >= ti && t_now < tf
+            correction_allowed = false;
+        end
+    end
+end
+
 %% Atualizacao auxiliar GPS a 1 Hz
 do_gps_update = false;
 if t_now >= next_gps_time_IEM
@@ -232,7 +248,7 @@ if t_now >= next_gps_time_IEM
     end
 end
 
-if do_gps_update
+if do_gps_update && correction_allowed
 
     %% Posicao auxiliar
     N_meas = pos_meas_in(1);

@@ -185,6 +185,14 @@ EKF_INDI_params.Qw = Qw;
 % Portanto, por padrao nao se soma gravidade na propagacao.
 EKF_INDI_params.acc_input_is_translational = true;
 
+%% Time ranges without GPS/yaw correction
+try
+    EKF_INDI_params.range_time_without_correction = ...
+        evalin('base','range_time_without_correction');
+catch
+    EKF_INDI_params.range_time_without_correction = [0 0];
+end
+
 %% Token para forcar reinicializacao entre simulacoes
 EKF_INDI_params.reset_token = now;
 

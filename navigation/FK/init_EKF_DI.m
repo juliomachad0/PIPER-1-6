@@ -163,6 +163,14 @@ EKF_DI_params.Qw = Qw;
 % sem adicionar/subtrair gravidade.
 EKF_DI_params.acc_input_is_translational = true;
 
+%% Time ranges without GPS/yaw correction
+try
+    EKF_DI_params.range_time_without_correction = ...
+        evalin('base','range_time_without_correction');
+catch
+    EKF_DI_params.range_time_without_correction = [0 0];
+end
+
 %% Token de reinicialização
 
 EKF_DI_params.reset_token = now;
