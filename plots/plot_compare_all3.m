@@ -1,15 +1,16 @@
-%% plot_compare_all.m
-% Comparação configurável entre XPlane, DBN e EKFs
+%% plot_compare_all3.m
+% Comparação compacta:
+%   Altitude
+%   Vista superior
+%   MSE 3D acumulado
+%   MSE altitude acumulado
+%   MSE horizontal acumulado
 
-fprintf('\n========== COMPARAÇÃO CONFIGURÁVEL DE NAVEGAÇÃO ==========\n');
+fprintf('\n========== COMPARAÇÃO ALL3: ALTITUDE, TRAJETÓRIA E MSE ==========\n');
 
 %% ===================== ESCOLHA DOS MODELOS =====================
 
-use_modelo      = false;
 use_xplane_ref  = true;
-
-use_dbn         = false;
-use_dbn_em      = false;
 
 use_ekf_di      = true;
 use_ekf_di_em   = true;
@@ -17,9 +18,11 @@ use_ekf_di_em   = true;
 use_ekf_indi    = true;
 use_ekf_indi_em = true;
 
+use_dbn         = false;
+use_dbn_em      = false;
+
 %% ===================== CORES =====================
 
-colors.modelo      = [1.000 0.000 0.600];  % rosa
 colors.xplane      = [0.000 0.500 0.000];  % verde escuro
 
 colors.dbn         = [1.000 0.000 1.000];  % magenta
@@ -78,44 +81,24 @@ series = struct( ...
     'alt', {}, ...
     'vel', {}, ...
     'VT', {}, ...
-    'acc', {}, ...
     'euler', {}, ...
-    'xhat', {}, ...
     'color', {} ...
 );
 
-%% Modelo matemático
-if use_modelo
-    try
-        [data, t] = get_out_signal(out_local, {'Y'});
-
-        s = new_series('Modelo', 'modelo', colors.modelo);
-        s.t = t;
-        s.N = data(:,10);
-        s.E = data(:,11);
-        s.alt = data(:,12);
-
-        if size(data,2) >= 3
-            s.VT = sqrt(data(:,1).^2 + data(:,2).^2 + data(:,3).^2);
-        end
-
-        series(end+1) = s;
-    catch ME
-        warning('Modelo out.Y não encontrado. Erro: %s', ME.message);
-    end
-end
-
-%% XPlane
+%% XPlane referência
 if use_xplane_ref
     try
         [data, t] = get_out_signal(out_local, {'XplaneSimulationData'});
 
         s = new_series('XPlane', 'xplane', colors.xplane);
+
         s.t = t;
         s.VT = data(:,1);
         s.alt = data(:,4);
         s.N = data(:,9);
         s.E = data(:,10);
+
+        s.euler = [data(:,5), data(:,2), data(:,7)];
 
         series(end+1) = s;
     catch ME
@@ -126,6 +109,7 @@ end
 %% DBN sem erro
 if use_dbn
     try
+        % teste nomes diferentes da mesma variavel
         [data, t] = get_out_signal(out_local, {'DBN_Data','DBN_data','BDN_data'});
 
         s = read_dbn_format(data, t, 'DBN', 'dbn', colors.dbn);
@@ -210,38 +194,68 @@ end
 idx_ref = find(strcmp({series.key}, 'xplane'), 1);
 
 if isempty(idx_ref)
-    warning('XPlane não foi carregado. Erros contra referência não serão plotados.');
+    error('XPlane precisa estar carregado como referência.');
 end
+
+ref = series(idx_ref);
 
 %% ===================== FIGURA =====================
 
-figure('Name','Comparação Navegação', 'Position',[80 40 1650 950]);
+figure('Name','Comparação ALL3 - Altitude, Vista Superior e MSE', ...
+       'Position',[80 40 1650 950]);
 
-%% 1 - Trajetória 3D
+%% 1 - Altitude
 
 subplot(3,2,1)
 hold on
 
 for k = 1:numel(series)
-    plot3(series(k).E, series(k).N, series(k).alt, ...
+    plot(series(k).t, series(k).alt, ...
         'Color', series(k).color, 'LineWidth', lineWidth);
 end
 
-plot_waypoints_3d(WPs_local);
+plot_altitude_waypoints(WPs_local);
+plot_correction_windows(gca, range_time_without_correction_local, false);
 
 grid on
-axis equal
-xlabel('Leste [m]')
-ylabel('Norte [m]')
-zlabel('Altitude [m]')
-title('Trajetória 3D')
-legend(build_legend(series, WPs_local), 'Location','best')
-view(30,25)
+xlabel('Tempo [s]')
+ylabel('Altitude [m]')
+title('Altitude')
+legend({series.name}, 'Location','best')
 hold off
 
-%% 2 - Vista superior
+%% 2 - MSE 3D acumulado
 
-subplot(3,2,5)
+subplot(3,2,2)
+hold on
+
+for k = 1:numel(series)
+
+    if k == idx_ref
+        continue;
+    end
+
+    [tc, Nref, Nk]     = align_by_time(ref.t, ref.N,   series(k).t, series(k).N);
+    [~,  Eref, Ek]     = align_by_time(ref.t, ref.E,   series(k).t, series(k).E);
+    [~,  altref, altk] = align_by_time(ref.t, ref.alt, series(k).t, series(k).alt);
+
+    e_3d2 = (Nref - Nk).^2 + (Eref - Ek).^2 + (altref - altk).^2;
+    mse_3d = cumulative_mean(e_3d2);
+
+    plot(tc, mse_3d, ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
+end
+plot_correction_windows(gca, range_time_without_correction_local, true);
+grid on
+xlabel('Tempo [s]')
+ylabel('MSE 3D [m^2]')
+title('MSE 3D Acumulado vs XPlane')
+legend(build_error_legend(series, idx_ref), 'Location','best')
+hold off
+
+%% 3 - Vista superior em subplot(3,2,[3 5])
+
+subplot(3,2,[3 5])
 hold on
 
 for k = 1:numel(series)
@@ -259,137 +273,112 @@ title('Vista Superior')
 legend(build_legend(series, WPs_local), 'Location','best')
 hold off
 
-%% 3 - Altitude
-
-subplot(3,2,3)
-hold on
-
-for k = 1:numel(series)
-    plot(series(k).t, series(k).alt, ...
-        'Color', series(k).color, 'LineWidth', lineWidth);
-end
-
-plot_altitude_waypoints(WPs_local);
-plot_correction_windows(gca, range_time_without_correction_local, true);
-
-grid on
-xlabel('Tempo [s]')
-ylabel('Altitude [m]')
-title('Altitude')
-legend({series.name}, 'Location','best')
-hold off
-
-%% 4 - Velocidade escalar
-
-subplot(3,2,2)
-hold on
-
-for k = 1:numel(series)
-    if ~isempty(series(k).VT)
-        plot(series(k).t, series(k).VT, ...
-            'Color', series(k).color, 'LineWidth', lineWidth);
-    end
-end
-
-plot_correction_windows(gca, range_time_without_correction_local, false);
-
-grid on
-xlabel('Tempo [s]')
-ylabel('Velocidade [m/s]')
-title('Velocidade Escalar')
-legend(build_vt_legend(series), 'Location','best')
-hold off
-
-%% 5 - Erro horizontal vs XPlane
+%% 4 - MSE altitude acumulado
 
 subplot(3,2,4)
 hold on
 
-if ~isempty(idx_ref)
+for k = 1:numel(series)
 
-    ref = series(idx_ref);
-
-    for k = 1:numel(series)
-
-        if k == idx_ref
-            continue;
-        end
-
-        [tc, Nref, Nk] = align_by_time(ref.t, ref.N, series(k).t, series(k).N);
-        [~,  Eref, Ek] = align_by_time(ref.t, ref.E, series(k).t, series(k).E);
-
-        erro_h = sqrt((Nref - Nk).^2 + (Eref - Ek).^2);
-
-        plot(tc, erro_h, ...
-            'Color', series(k).color, 'LineWidth', lineWidth);
+    if k == idx_ref
+        continue;
     end
 
-    yline(0, 'k--', 'XPlane ref');
-    plot_correction_windows(gca, range_time_without_correction_local, false);
+    [tc, alt_ref, alt_k] = align_by_time(ref.t, ref.alt, series(k).t, series(k).alt);
 
-    grid on
-    xlabel('Tempo [s]')
-    ylabel('Erro horizontal [m]')
-    title('Erro Horizontal vs XPlane')
-    legend(build_error_legend(series, idx_ref), 'Location','best')
+    e_alt2 = (alt_ref - alt_k).^2;
+    mse_alt = cumulative_mean(e_alt2);
+
+    plot(tc, mse_alt, ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
 end
 
+plot_correction_windows(gca, range_time_without_correction_local, false);
+grid on
+xlabel('Tempo [s]')
+ylabel('MSE altitude [m^2]')
+title('MSE de Altitude Acumulado vs XPlane')
+legend(build_error_legend(series, idx_ref), 'Location','best')
 hold off
 
-%% 6 - Erro altitude vs XPlane
+%% 5 - MSE horizontal acumulado
 
 subplot(3,2,6)
 hold on
 
-if ~isempty(idx_ref)
+for k = 1:numel(series)
 
-    ref = series(idx_ref);
-
-    for k = 1:numel(series)
-
-        if k == idx_ref
-            continue;
-        end
-
-        [tc, alt_ref, alt_k] = align_by_time(ref.t, ref.alt, series(k).t, series(k).alt);
-
-        erro_alt = alt_ref - alt_k;
-
-        plot(tc, erro_alt, ...
-            'Color', series(k).color, 'LineWidth', lineWidth);
+    if k == idx_ref
+        continue;
     end
 
-    yline(0, 'k--', 'XPlane ref');
-    plot_correction_windows(gca, range_time_without_correction_local, false);
+    [tc, Nref, Nk] = align_by_time(ref.t, ref.N, series(k).t, series(k).N);
+    [~,  Eref, Ek] = align_by_time(ref.t, ref.E, series(k).t, series(k).E);
 
-    grid on
-    xlabel('Tempo [s]')
-    ylabel('Erro altitude [m]')
-    title('Erro de Altitude vs XPlane')
-    legend(build_error_legend(series, idx_ref), 'Location','best')
+    e_h2 = (Nref - Nk).^2 + (Eref - Ek).^2;
+    mse_h = cumulative_mean(e_h2);
+
+    plot(tc, mse_h, ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
 end
 
+plot_correction_windows(gca, range_time_without_correction_local, false);
+grid on
+xlabel('Tempo [s]')
+ylabel('MSE horizontal [m^2]')
+title('MSE Horizontal Acumulado vs XPlane')
+legend(build_error_legend(series, idx_ref), 'Location','best')
 hold off
 
-sgtitle('XPlane x EKFs')
+%% Título geral da figura
+
+annotation('textbox', [0 0.955 1 0.035], ...
+    'String', 'Altitude, Vista Superior e MSE - XPlane x Estimadores', ...
+    'HorizontalAlignment', 'center', ...
+    'VerticalAlignment', 'middle', ...
+    'FontWeight', 'bold', ...
+    'FontSize', 14, ...
+    'EdgeColor', 'none');
 
 %% ===================== ESTATÍSTICAS =====================
 
-fprintf('\n--- Séries carregadas ---\n');
+fprintf('\n--- Métricas finais vs XPlane ---\n');
 
 for k = 1:numel(series)
-    fprintf('%-12s | N0=%8.2f E0=%8.2f Alt0=%8.2f | Nf=%8.2f Ef=%8.2f Altf=%8.2f\n', ...
+
+    if k == idx_ref
+        continue;
+    end
+
+    [~, Nref, Nk]     = align_by_time(ref.t, ref.N,   series(k).t, series(k).N);
+    [~, Eref, Ek]     = align_by_time(ref.t, ref.E,   series(k).t, series(k).E);
+    [~, altref, altk] = align_by_time(ref.t, ref.alt, series(k).t, series(k).alt);
+
+    e_h2   = (Nref - Nk).^2 + (Eref - Ek).^2;
+    e_alt2 = (altref - altk).^2;
+    e_3d2  = e_h2 + e_alt2;
+
+    mse_h_final   = mean(e_h2);
+    mse_alt_final = mean(e_alt2);
+    mse_3d_final  = mean(e_3d2);
+
+    rmse_h_final   = sqrt(mse_h_final);
+    rmse_alt_final = sqrt(mse_alt_final);
+    rmse_3d_final  = sqrt(mse_3d_final);
+
+    fprintf('%-12s | MSE H=%.3f m^2 | RMSE H=%.3f m | MSE Alt=%.3f m^2 | RMSE Alt=%.3f m | MSE 3D=%.3f m^2 | RMSE 3D=%.3f m\n', ...
         series(k).name, ...
-        series(k).N(1), series(k).E(1), series(k).alt(1), ...
-        series(k).N(end), series(k).E(end), series(k).alt(end));
+        mse_h_final, rmse_h_final, ...
+        mse_alt_final, rmse_alt_final, ...
+        mse_3d_final, rmse_3d_final);
 end
 
-fprintf('\n========== FIM DA COMPARAÇÃO ==========\n');
+fprintf('\n========== FIM DO PLOT_COMPARE_ALL3 ==========\n');
 
 %% ========================================================================
 % FUNÇÕES LOCAIS
 %% ========================================================================
-
+%% new_series
 function s = new_series(name, key, color)
 
     s.name = name;
@@ -400,13 +389,11 @@ function s = new_series(name, key, color)
     s.alt = [];
     s.vel = [];
     s.VT = [];
-    s.acc = [];
     s.euler = [];
-    s.xhat = [];
     s.color = color;
 
 end
-
+%% read_dbn_format
 function s = read_dbn_format(data, t, name, key, color)
 
     s = new_series(name, key, color);
@@ -429,16 +416,16 @@ function s = read_dbn_format(data, t, name, key, color)
     s.VT = sqrt(s.vel(:,1).^2 + s.vel(:,2).^2 + s.vel(:,3).^2);
 
 end
-
+%% read_ekf_format
 function s = read_ekf_format(data, t, name, key, color)
 
     s = new_series(name, key, color);
 
     s.t = t;
 
-    % Novo formato dos EKFs:
+    % EKF:
     % 1:3    pos_out   = [N E altitude]
-    % 4:6    euler_out
+    % 4:6    euler_out = [phi theta psi]
     % 7:9    vel_out
     % 10:12  acc_n_out
     % 13:33  xhat_out
@@ -451,16 +438,11 @@ function s = read_ekf_format(data, t, name, key, color)
 
     s.euler = data(:,4:6);
     s.vel   = data(:,7:9);
-    s.acc   = data(:,10:12);
 
     s.VT = sqrt(s.vel(:,1).^2 + s.vel(:,2).^2 + s.vel(:,3).^2);
 
-    if size(data,2) >= 33
-        s.xhat = data(:,13:33);
-    end
-
 end
-
+%% get_out_signal
 function [data, t] = get_out_signal(out_local, names)
 
     for i = 1:numel(names)
@@ -524,7 +506,7 @@ function [data, t] = get_out_signal(out_local, names)
     error('Nenhum dos sinais solicitados foi encontrado em out.');
 
 end
-
+%% align_by_time
 function [tc, yref_i, y_i] = align_by_time(tref, yref, t, y)
 
     tref = tref(:);
@@ -543,7 +525,14 @@ function [tc, yref_i, y_i] = align_by_time(tref, yref, t, y)
     y_i    = interp1(t, y, tc, 'linear');
 
 end
+%% cumulative_mean
+function mse = cumulative_mean(x)
 
+    n = (1:length(x)).';
+    mse = cumsum(x) ./ n;
+
+end
+%% build_legend
 function labels = build_legend(series, WPs_local)
 
     labels = cell(1,numel(series));
@@ -557,25 +546,7 @@ function labels = build_legend(series, WPs_local)
     end
 
 end
-
-function labels = build_vt_legend(series)
-
-    labels = {};
-
-    for k = 1:numel(series)
-
-        if ~isempty(series(k).VT)
-
-            if strcmp(series(k).key, 'xplane')
-                labels{end+1} = 'XPlane true airspeed'; %#ok<AGROW>
-            else
-                labels{end+1} = series(k).name; %#ok<AGROW>
-            end
-        end
-    end
-
-end
-
+%% build_error_legend
 function labels = build_error_legend(series, idx_ref)
 
     labels = {};
@@ -588,16 +559,7 @@ function labels = build_error_legend(series, idx_ref)
     end
 
 end
-
-function plot_waypoints_3d(WPs_local)
-
-    if ~isempty(WPs_local)
-        plot3(WPs_local(:,2), WPs_local(:,1), WPs_local(:,3), ...
-            'ks', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
-    end
-
-end
-
+%% plot_waypoints_2d
 function plot_waypoints_2d(WPs_local, R_accept_local)
 
     if ~isempty(WPs_local)
@@ -618,7 +580,7 @@ function plot_waypoints_2d(WPs_local, R_accept_local)
     end
 
 end
-
+%% plot_altitude_waypoints
 function plot_altitude_waypoints(WPs_local)
 
     if ~isempty(WPs_local)
@@ -632,98 +594,98 @@ function plot_altitude_waypoints(WPs_local)
     end
 
 end
-
+%% plot_correction_windows
 function plot_correction_windows(ax, range_no_corr, show_labels, label_y_value)
 
-    if nargin < 4
-        label_y_value = [];
-    end
+if nargin < 4
+    label_y_value = [];
+end
 
-    if isempty(range_no_corr) || size(range_no_corr,2) ~= 2
-        return;
-    end
+if isempty(range_no_corr) || size(range_no_corr,2) ~= 2
+    return;
+end
 
-    axes(ax); %#ok<LAXES>
+axes(ax);
 
-    yl = ylim(ax);
-    y_span = yl(2) - yl(1);
+yl = ylim(ax);
+y_span = yl(2) - yl(1);
 
-    if y_span <= 0
-        y_span = 1;
-    end
+if y_span <= 0
+    y_span = 1;
+end
 
-    %% Calcula posicao vertical do texto
-    if ~isempty(label_y_value)
-        label_y = label_y_value;
-    else
-        line_handles = findobj(ax, 'Type', 'line');
+%% Calcula posição vertical do texto
+if ~isempty(label_y_value)
+    label_y = label_y_value;
+else
+    line_handles = findobj(ax, 'Type', 'line');
 
-        y_all = [];
+    y_all = [];
 
-        for ii = 1:numel(line_handles)
-            try
-                y_i = line_handles(ii).YData;
-                y_i = y_i(:);
-                y_i = y_i(isfinite(y_i));
-
-                if ~isempty(y_i)
-                    y_all = [y_all; y_i]; %#ok<AGROW>
-                end
-            catch
-            end
-        end
-
-        if ~isempty(y_all)
-            label_y = 0.5 * (min(y_all) + max(y_all));
-        else
-            label_y = 0.5 * (yl(1) + yl(2));
-        end
-    end
-
-    %% Plota janelas sem correcao
-    for kk = 1:size(range_no_corr,1)
-
-        ti = range_no_corr(kk,1);
-        tf = range_no_corr(kk,2);
-
-        if ti == 0 && tf == 0
-            continue;
-        end
-
-        if tf <= ti
-            continue;
-        end
-
-        hp = patch(ax, ...
-            [ti tf tf ti], ...
-            [yl(1) yl(1) yl(2) yl(2)], ...
-            [0.85 0.85 0.85], ...
-            'FaceAlpha', 0.22, ...
-            'EdgeColor', 'none', ...
-            'HandleVisibility', 'off');
-
+    for ii = 1:numel(line_handles)
         try
-            uistack(hp, 'bottom');
+            y_i = line_handles(ii).YData;
+            y_i = y_i(:);
+            y_i = y_i(isfinite(y_i));
+
+            if ~isempty(y_i)
+                y_all = [y_all; y_i]; %#ok<AGROW>
+            end
         catch
         end
-
-        xline(ax, ti, 'k--', 'LineWidth', 1.0, 'HandleVisibility', 'off');
-        xline(ax, tf, 'k-',  'LineWidth', 1.0, 'HandleVisibility', 'off');
-
-        if show_labels
-            text(ax, ...
-                (ti + tf)/2, label_y, ...
-                sprintf('sem GPS e/ou Yaw (Psi) %d', kk), ...
-                'HorizontalAlignment', 'center', ...
-                'VerticalAlignment', 'middle', ...
-                'FontSize', 8, ...
-                'Color', [0.15 0.15 0.15], ...
-                'BackgroundColor', [1 1 1], ...
-                'Margin', 1, ...
-                'HandleVisibility', 'off');
-        end
     end
 
-    ylim(ax, yl);
+    if ~isempty(y_all)
+        label_y = 0.5 * (min(y_all) + max(y_all));
+    else
+        label_y = 0.5 * (yl(1) + yl(2));
+    end
+end
+
+%% Plota janelas sem correção
+for kk = 1:size(range_no_corr,1)
+
+    ti = range_no_corr(kk,1);
+    tf = range_no_corr(kk,2);
+
+    if ti == 0 && tf == 0
+        continue;
+    end
+
+    if tf <= ti
+        continue;
+    end
+
+    hp = patch(ax, ...
+        [ti tf tf ti], ...
+        [yl(1) yl(1) yl(2) yl(2)], ...
+        [0.85 0.85 0.85], ...
+        'FaceAlpha', 0.22, ...
+        'EdgeColor', 'none', ...
+        'HandleVisibility', 'off');
+
+    try
+        uistack(hp, 'bottom');
+    catch
+    end
+
+    xline(ax, ti, 'k--', 'LineWidth', 1.0, 'HandleVisibility', 'off');
+    xline(ax, tf, 'k-',  'LineWidth', 1.0, 'HandleVisibility', 'off');
+
+    if show_labels
+        text(ax, ...
+            (ti + tf)/2, label_y, ...
+            sprintf('sem correção %d', kk), ...
+            'HorizontalAlignment', 'center', ...
+            'VerticalAlignment', 'middle', ...
+            'FontSize', 8, ...
+            'Color', [0.15 0.15 0.15], ...
+            'BackgroundColor', [1 1 1], ...
+            'Margin', 1, ...
+            'HandleVisibility', 'off');
+    end
+end
+
+ylim(ax, yl);
 
 end

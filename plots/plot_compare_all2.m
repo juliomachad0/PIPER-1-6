@@ -168,7 +168,7 @@ hold off
 
 %% 2 - Pitch
 
-subplot(3,2,2)
+subplot(3,2,3)
 hold on
 
 for k = 1:numel(series)
@@ -185,7 +185,7 @@ hold off
 
 %% 3 - Yaw
 
-subplot(3,2,3)
+subplot(3,2,5)
 hold on
 
 for k = 1:numel(series)
@@ -202,7 +202,7 @@ hold off
 
 %% 4 - MSE horizontal acumulado
 
-subplot(3,2,4)
+subplot(3,2,6)
 hold on
 
 for k = 1:numel(series)
@@ -230,7 +230,7 @@ hold off
 
 %% 5 - MSE altitude acumulado
 
-subplot(3,2,5)
+subplot(3,2,4)
 hold on
 
 for k = 1:numel(series)
@@ -257,7 +257,7 @@ hold off
 
 %% 6 - MSE 3D acumulado
 
-subplot(3,2,6)
+subplot(3,2,2)
 hold on
 
 for k = 1:numel(series)

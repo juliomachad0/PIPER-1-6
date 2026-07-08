@@ -1,25 +1,25 @@
-%% plot_compare_all.m
-% Comparação configurável entre XPlane, DBN e EKFs
+%% plot_compare_all4.m
+% Comparação de angulos de Euler e MSE angular:
+%   Roll, Pitch, Yaw
+%   MSE Roll, MSE Pitch, MSE Yaw
 
-fprintf('\n========== COMPARAÇÃO CONFIGURÁVEL DE NAVEGAÇÃO ==========\n');
+fprintf('\n========== COMPARAÇÃO ALL4: EULER E MSE ANGULAR ==========\n');
 
 %% ===================== ESCOLHA DOS MODELOS =====================
 
-use_modelo      = false;
 use_xplane_ref  = true;
 
 use_dbn         = false;
 use_dbn_em      = false;
 
 use_ekf_di      = true;
-use_ekf_di_em   = true;
+use_ekf_di_em   = false;
 
 use_ekf_indi    = true;
-use_ekf_indi_em = true;
+use_ekf_indi_em = false;
 
 %% ===================== CORES =====================
 
-colors.modelo      = [1.000 0.000 0.600];  % rosa
 colors.xplane      = [0.000 0.500 0.000];  % verde escuro
 
 colors.dbn         = [1.000 0.000 1.000];  % magenta
@@ -45,20 +45,6 @@ if isempty(range_time_without_correction_local) || size(range_time_without_corre
     range_time_without_correction_local = [0 0];
 end
 
-%% ===================== WAYPOINTS =====================
-
-try
-    WPs_local = WPs;
-catch
-    WPs_local = [];
-end
-
-try
-    R_accept_local = R_accept;
-catch
-    R_accept_local = [];
-end
-
 %% ===================== VERIFICAR OUT =====================
 
 if ~evalin('base','exist(''out'',''var'')')
@@ -73,49 +59,28 @@ series = struct( ...
     'name', {}, ...
     'key', {}, ...
     't', {}, ...
-    'N', {}, ...
-    'E', {}, ...
-    'alt', {}, ...
-    'vel', {}, ...
-    'VT', {}, ...
-    'acc', {}, ...
-    'euler', {}, ...
-    'xhat', {}, ...
+    'phi', {}, ...
+    'theta', {}, ...
+    'psi', {}, ...
     'color', {} ...
 );
 
-%% Modelo matemático
-if use_modelo
-    try
-        [data, t] = get_out_signal(out_local, {'Y'});
-
-        s = new_series('Modelo', 'modelo', colors.modelo);
-        s.t = t;
-        s.N = data(:,10);
-        s.E = data(:,11);
-        s.alt = data(:,12);
-
-        if size(data,2) >= 3
-            s.VT = sqrt(data(:,1).^2 + data(:,2).^2 + data(:,3).^2);
-        end
-
-        series(end+1) = s;
-    catch ME
-        warning('Modelo out.Y não encontrado. Erro: %s', ME.message);
-    end
-end
-
-%% XPlane
+%% XPlane referência
 if use_xplane_ref
     try
         [data, t] = get_out_signal(out_local, {'XplaneSimulationData'});
 
         s = new_series('XPlane', 'xplane', colors.xplane);
+
         s.t = t;
-        s.VT = data(:,1);
-        s.alt = data(:,4);
-        s.N = data(:,9);
-        s.E = data(:,10);
+
+        % XPlane:
+        % phi   -> coluna 5
+        % theta -> coluna 2
+        % psi   -> coluna 7
+        s.phi   = data(:,5);
+        s.theta = data(:,2);
+        s.psi   = data(:,7);
 
         series(end+1) = s;
     catch ME
@@ -210,181 +175,195 @@ end
 idx_ref = find(strcmp({series.key}, 'xplane'), 1);
 
 if isempty(idx_ref)
-    warning('XPlane não foi carregado. Erros contra referência não serão plotados.');
+    error('XPlane precisa estar carregado como referência.');
 end
+
+ref = series(idx_ref);
 
 %% ===================== FIGURA =====================
 
-figure('Name','Comparação Navegação', 'Position',[80 40 1650 950]);
+figure('Name','Comparação ALL4 - Euler e MSE Angular', ...
+       'Position',[80 40 1650 950]);
 
-%% 1 - Trajetória 3D
+%% 1 - Roll
 
 subplot(3,2,1)
 hold on
 
 for k = 1:numel(series)
-    plot3(series(k).E, series(k).N, series(k).alt, ...
+    plot(series(k).t, rad2deg(series(k).phi), ...
         'Color', series(k).color, 'LineWidth', lineWidth);
-end
-
-plot_waypoints_3d(WPs_local);
-
-grid on
-axis equal
-xlabel('Leste [m]')
-ylabel('Norte [m]')
-zlabel('Altitude [m]')
-title('Trajetória 3D')
-legend(build_legend(series, WPs_local), 'Location','best')
-view(30,25)
-hold off
-
-%% 2 - Vista superior
-
-subplot(3,2,5)
-hold on
-
-for k = 1:numel(series)
-    plot(series(k).E, series(k).N, ...
-        'Color', series(k).color, 'LineWidth', lineWidth);
-end
-
-plot_waypoints_2d(WPs_local, R_accept_local);
-
-grid on
-axis equal
-xlabel('Leste [m]')
-ylabel('Norte [m]')
-title('Vista Superior')
-legend(build_legend(series, WPs_local), 'Location','best')
-hold off
-
-%% 3 - Altitude
-
-subplot(3,2,3)
-hold on
-
-for k = 1:numel(series)
-    plot(series(k).t, series(k).alt, ...
-        'Color', series(k).color, 'LineWidth', lineWidth);
-end
-
-plot_altitude_waypoints(WPs_local);
-plot_correction_windows(gca, range_time_without_correction_local, true);
-
-grid on
-xlabel('Tempo [s]')
-ylabel('Altitude [m]')
-title('Altitude')
-legend({series.name}, 'Location','best')
-hold off
-
-%% 4 - Velocidade escalar
-
-subplot(3,2,2)
-hold on
-
-for k = 1:numel(series)
-    if ~isempty(series(k).VT)
-        plot(series(k).t, series(k).VT, ...
-            'Color', series(k).color, 'LineWidth', lineWidth);
-    end
 end
 
 plot_correction_windows(gca, range_time_without_correction_local, false);
 
 grid on
 xlabel('Tempo [s]')
-ylabel('Velocidade [m/s]')
-title('Velocidade Escalar')
-legend(build_vt_legend(series), 'Location','best')
+ylabel('\phi roll [deg]')
+title('Roll')
+legend({series.name}, 'Location','best')
 hold off
 
-%% 5 - Erro horizontal vs XPlane
+%% 2 - MSE Roll
+
+subplot(3,2,2)
+hold on
+
+for k = 1:numel(series)
+
+    if k == idx_ref
+        continue;
+    end
+
+    [tc, ref_i, y_i] = align_by_time(ref.t, ref.phi, series(k).t, series(k).phi);
+
+    err = wrapToPi_local(ref_i - y_i);
+    mse_roll = cumulative_mean(err.^2);
+
+    plot(tc, rad2deg(sqrt(mse_roll)), ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
+end
+
+plot_correction_windows(gca, range_time_without_correction_local, true);
+
+grid on
+xlabel('Tempo [s]')
+ylabel('RMSE roll [deg]')
+title('RMSE Roll Acumulado vs XPlane')
+legend(build_error_legend(series, idx_ref), 'Location','best')
+hold off
+
+%% 3 - Pitch
+
+subplot(3,2,3)
+hold on
+
+for k = 1:numel(series)
+    plot(series(k).t, rad2deg(series(k).theta), ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
+end
+
+plot_correction_windows(gca, range_time_without_correction_local, false);
+
+grid on
+xlabel('Tempo [s]')
+ylabel('\theta pitch [deg]')
+title('Pitch')
+legend({series.name}, 'Location','best')
+hold off
+
+%% 4 - MSE Pitch
 
 subplot(3,2,4)
 hold on
 
-if ~isempty(idx_ref)
+for k = 1:numel(series)
 
-    ref = series(idx_ref);
-
-    for k = 1:numel(series)
-
-        if k == idx_ref
-            continue;
-        end
-
-        [tc, Nref, Nk] = align_by_time(ref.t, ref.N, series(k).t, series(k).N);
-        [~,  Eref, Ek] = align_by_time(ref.t, ref.E, series(k).t, series(k).E);
-
-        erro_h = sqrt((Nref - Nk).^2 + (Eref - Ek).^2);
-
-        plot(tc, erro_h, ...
-            'Color', series(k).color, 'LineWidth', lineWidth);
+    if k == idx_ref
+        continue;
     end
 
-    yline(0, 'k--', 'XPlane ref');
-    plot_correction_windows(gca, range_time_without_correction_local, false);
+    [tc, ref_i, y_i] = align_by_time(ref.t, ref.theta, series(k).t, series(k).theta);
 
-    grid on
-    xlabel('Tempo [s]')
-    ylabel('Erro horizontal [m]')
-    title('Erro Horizontal vs XPlane')
-    legend(build_error_legend(series, idx_ref), 'Location','best')
+    err = wrapToPi_local(ref_i - y_i);
+    mse_pitch = cumulative_mean(err.^2);
+
+    plot(tc, rad2deg(sqrt(mse_pitch)), ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
 end
 
+plot_correction_windows(gca, range_time_without_correction_local, false);
+
+grid on
+xlabel('Tempo [s]')
+ylabel('RMSE pitch [deg]')
+title('RMSE Pitch Acumulado vs XPlane')
+legend(build_error_legend(series, idx_ref), 'Location','best')
 hold off
 
-%% 6 - Erro altitude vs XPlane
+%% 5 - Yaw
+
+subplot(3,2,5)
+hold on
+
+for k = 1:numel(series)
+    plot(series(k).t, rad2deg(series(k).psi), ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
+end
+
+plot_correction_windows(gca, range_time_without_correction_local, false);
+
+grid on
+xlabel('Tempo [s]')
+ylabel('\psi yaw [deg]')
+title('Yaw')
+legend({series.name}, 'Location','best')
+hold off
+
+%% 6 - MSE Yaw
 
 subplot(3,2,6)
 hold on
 
-if ~isempty(idx_ref)
+for k = 1:numel(series)
 
-    ref = series(idx_ref);
-
-    for k = 1:numel(series)
-
-        if k == idx_ref
-            continue;
-        end
-
-        [tc, alt_ref, alt_k] = align_by_time(ref.t, ref.alt, series(k).t, series(k).alt);
-
-        erro_alt = alt_ref - alt_k;
-
-        plot(tc, erro_alt, ...
-            'Color', series(k).color, 'LineWidth', lineWidth);
+    if k == idx_ref
+        continue;
     end
 
-    yline(0, 'k--', 'XPlane ref');
-    plot_correction_windows(gca, range_time_without_correction_local, false);
+    [tc, ref_i, y_i] = align_by_time(ref.t, ref.psi, series(k).t, series(k).psi);
 
-    grid on
-    xlabel('Tempo [s]')
-    ylabel('Erro altitude [m]')
-    title('Erro de Altitude vs XPlane')
-    legend(build_error_legend(series, idx_ref), 'Location','best')
+    err = wrapToPi_local(ref_i - y_i);
+    mse_yaw = cumulative_mean(err.^2);
+
+    plot(tc, rad2deg(sqrt(mse_yaw)), ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
 end
 
+plot_correction_windows(gca, range_time_without_correction_local, false);
+
+grid on
+xlabel('Tempo [s]')
+ylabel('RMSE yaw [deg]')
+title('RMSE Yaw Acumulado vs XPlane')
+legend(build_error_legend(series, idx_ref), 'Location','best')
 hold off
 
-sgtitle('XPlane x EKFs')
+annotation('textbox', [0 0.955 1 0.035], ...
+    'String', 'Euler e RMSE Angular - XPlane x Estimadores', ...
+    'HorizontalAlignment', 'center', ...
+    'VerticalAlignment', 'middle', ...
+    'FontWeight', 'bold', ...
+    'FontSize', 14, ...
+    'EdgeColor', 'none');
 
 %% ===================== ESTATÍSTICAS =====================
 
-fprintf('\n--- Séries carregadas ---\n');
+fprintf('\n--- Métricas finais angulares vs XPlane ---\n');
 
 for k = 1:numel(series)
-    fprintf('%-12s | N0=%8.2f E0=%8.2f Alt0=%8.2f | Nf=%8.2f Ef=%8.2f Altf=%8.2f\n', ...
-        series(k).name, ...
-        series(k).N(1), series(k).E(1), series(k).alt(1), ...
-        series(k).N(end), series(k).E(end), series(k).alt(end));
+
+    if k == idx_ref
+        continue;
+    end
+
+    [~, phi_ref, phi_k]     = align_by_time(ref.t, ref.phi,   series(k).t, series(k).phi);
+    [~, theta_ref, theta_k] = align_by_time(ref.t, ref.theta, series(k).t, series(k).theta);
+    [~, psi_ref, psi_k]     = align_by_time(ref.t, ref.psi,   series(k).t, series(k).psi);
+
+    err_phi   = wrapToPi_local(phi_ref - phi_k);
+    err_theta = wrapToPi_local(theta_ref - theta_k);
+    err_psi   = wrapToPi_local(psi_ref - psi_k);
+
+    rmse_phi   = rad2deg(sqrt(mean(err_phi.^2)));
+    rmse_theta = rad2deg(sqrt(mean(err_theta.^2)));
+    rmse_psi   = rad2deg(sqrt(mean(err_psi.^2)));
+
+    fprintf('%-12s | RMSE roll=%.3f deg | RMSE pitch=%.3f deg | RMSE yaw=%.3f deg\n', ...
+        series(k).name, rmse_phi, rmse_theta, rmse_psi);
 end
 
-fprintf('\n========== FIM DA COMPARAÇÃO ==========\n');
+fprintf('\n========== FIM DO PLOT_COMPARE_ALL4 ==========\n');
 
 %% ========================================================================
 % FUNÇÕES LOCAIS
@@ -395,14 +374,9 @@ function s = new_series(name, key, color)
     s.name = name;
     s.key = key;
     s.t = [];
-    s.N = [];
-    s.E = [];
-    s.alt = [];
-    s.vel = [];
-    s.VT = [];
-    s.acc = [];
-    s.euler = [];
-    s.xhat = [];
+    s.phi = [];
+    s.theta = [];
+    s.psi = [];
     s.color = color;
 
 end
@@ -413,20 +387,11 @@ function s = read_dbn_format(data, t, name, key, color)
 
     s.t = t;
 
-    s.euler = data(:,1:3);
-    s.vel   = data(:,4:6);
-
-    pos = data(:,7:9);
-
-    s.N = pos(:,1);
-    s.E = pos(:,2);
-    s.alt = -pos(:,3);
-
-    if size(data,2) >= 12
-        s.acc = data(:,10:12);
-    end
-
-    s.VT = sqrt(s.vel(:,1).^2 + s.vel(:,2).^2 + s.vel(:,3).^2);
+    % DBN:
+    % 1:3 = [phi theta psi]
+    s.phi   = data(:,1);
+    s.theta = data(:,2);
+    s.psi   = data(:,3);
 
 end
 
@@ -436,28 +401,11 @@ function s = read_ekf_format(data, t, name, key, color)
 
     s.t = t;
 
-    % Novo formato dos EKFs:
-    % 1:3    pos_out   = [N E altitude]
-    % 4:6    euler_out
-    % 7:9    vel_out
-    % 10:12  acc_n_out
-    % 13:33  xhat_out
-
-    pos = data(:,1:3);
-
-    s.N = pos(:,1);
-    s.E = pos(:,2);
-    s.alt = pos(:,3);
-
-    s.euler = data(:,4:6);
-    s.vel   = data(:,7:9);
-    s.acc   = data(:,10:12);
-
-    s.VT = sqrt(s.vel(:,1).^2 + s.vel(:,2).^2 + s.vel(:,3).^2);
-
-    if size(data,2) >= 33
-        s.xhat = data(:,13:33);
-    end
+    % EKF:
+    % 4:6 = [phi theta psi]
+    s.phi   = data(:,4);
+    s.theta = data(:,5);
+    s.psi   = data(:,6);
 
 end
 
@@ -544,35 +492,10 @@ function [tc, yref_i, y_i] = align_by_time(tref, yref, t, y)
 
 end
 
-function labels = build_legend(series, WPs_local)
+function mse = cumulative_mean(x)
 
-    labels = cell(1,numel(series));
-
-    for k = 1:numel(series)
-        labels{k} = series(k).name;
-    end
-
-    if ~isempty(WPs_local)
-        labels{end+1} = 'Waypoints';
-    end
-
-end
-
-function labels = build_vt_legend(series)
-
-    labels = {};
-
-    for k = 1:numel(series)
-
-        if ~isempty(series(k).VT)
-
-            if strcmp(series(k).key, 'xplane')
-                labels{end+1} = 'XPlane true airspeed'; %#ok<AGROW>
-            else
-                labels{end+1} = series(k).name; %#ok<AGROW>
-            end
-        end
-    end
+    n = (1:length(x)).';
+    mse = cumsum(x) ./ n;
 
 end
 
@@ -589,47 +512,9 @@ function labels = build_error_legend(series, idx_ref)
 
 end
 
-function plot_waypoints_3d(WPs_local)
+function ang = wrapToPi_local(ang)
 
-    if ~isempty(WPs_local)
-        plot3(WPs_local(:,2), WPs_local(:,1), WPs_local(:,3), ...
-            'ks', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
-    end
-
-end
-
-function plot_waypoints_2d(WPs_local, R_accept_local)
-
-    if ~isempty(WPs_local)
-
-        plot(WPs_local(:,2), WPs_local(:,1), ...
-            'ks', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
-
-        if ~isempty(R_accept_local)
-
-            th = linspace(0, 2*pi, 100);
-
-            for j = 1:size(WPs_local,1)
-                plot(WPs_local(j,2) + R_accept_local*cos(th), ...
-                     WPs_local(j,1) + R_accept_local*sin(th), ...
-                     'k--', 'LineWidth', 0.5);
-            end
-        end
-    end
-
-end
-
-function plot_altitude_waypoints(WPs_local)
-
-    if ~isempty(WPs_local)
-
-        alt_wps = unique(WPs_local(:,3));
-
-        for j = 1:length(alt_wps)
-            yline(alt_wps(j), 'k--', sprintf('%.0f m', alt_wps(j)), ...
-                'LineWidth', 0.6, 'LabelHorizontalAlignment', 'left');
-        end
-    end
+    ang = mod(ang + pi, 2*pi) - pi;
 
 end
 
@@ -652,7 +537,7 @@ function plot_correction_windows(ax, range_no_corr, show_labels, label_y_value)
         y_span = 1;
     end
 
-    %% Calcula posicao vertical do texto
+    %% Calcula posição vertical do texto
     if ~isempty(label_y_value)
         label_y = label_y_value;
     else
@@ -680,7 +565,7 @@ function plot_correction_windows(ax, range_no_corr, show_labels, label_y_value)
         end
     end
 
-    %% Plota janelas sem correcao
+    %% Plota janelas sem correção
     for kk = 1:size(range_no_corr,1)
 
         ti = range_no_corr(kk,1);
@@ -713,7 +598,7 @@ function plot_correction_windows(ax, range_no_corr, show_labels, label_y_value)
         if show_labels
             text(ax, ...
                 (ti + tf)/2, label_y, ...
-                sprintf('sem GPS e/ou Yaw (Psi) %d', kk), ...
+                sprintf('sem correção %d', kk), ...
                 'HorizontalAlignment', 'center', ...
                 'VerticalAlignment', 'middle', ...
                 'FontSize', 8, ...

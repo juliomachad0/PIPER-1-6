@@ -1,25 +1,27 @@
-%% plot_compare_all.m
-% Comparação configurável entre XPlane, DBN e EKFs
+%% plot_compare_all5.m
+% Comparação de velocidades:
+%   V_N, V_E, V_D
+%   Velocidade em Relacao ao Solo 3D - NED
+%   MSE acumulado de cada velocidade
+%   Erro comparativo de V_3D vs XPlane
 
-fprintf('\n========== COMPARAÇÃO CONFIGURÁVEL DE NAVEGAÇÃO ==========\n');
+fprintf('\n========== COMPARAÇÃO ALL5: VELOCIDADES E MSE ==========\n');
 
 %% ===================== ESCOLHA DOS MODELOS =====================
 
-use_modelo      = false;
 use_xplane_ref  = true;
 
 use_dbn         = false;
 use_dbn_em      = false;
 
 use_ekf_di      = true;
-use_ekf_di_em   = true;
+use_ekf_di_em   = false;
 
 use_ekf_indi    = true;
-use_ekf_indi_em = true;
+use_ekf_indi_em = false;
 
 %% ===================== CORES =====================
 
-colors.modelo      = [1.000 0.000 0.600];  % rosa
 colors.xplane      = [0.000 0.500 0.000];  % verde escuro
 
 colors.dbn         = [1.000 0.000 1.000];  % magenta
@@ -30,6 +32,8 @@ colors.ekf_di_em   = [0.500 0.000 0.500];  % roxo
 
 colors.ekf_indi    = [1.000 0.000 0.000];  % vermelho
 colors.ekf_indi_em = [0.500 0.250 0.000];  % marrom
+
+colors.xplane_vt   = [0.000 0.000 0.000];  % preto para VT XPlane
 
 lineWidth = 1.4;
 
@@ -43,20 +47,6 @@ end
 
 if isempty(range_time_without_correction_local) || size(range_time_without_correction_local,2) ~= 2
     range_time_without_correction_local = [0 0];
-end
-
-%% ===================== WAYPOINTS =====================
-
-try
-    WPs_local = WPs;
-catch
-    WPs_local = [];
-end
-
-try
-    R_accept_local = R_accept;
-catch
-    R_accept_local = [];
 end
 
 %% ===================== VERIFICAR OUT =====================
@@ -73,49 +63,36 @@ series = struct( ...
     'name', {}, ...
     'key', {}, ...
     't', {}, ...
-    'N', {}, ...
-    'E', {}, ...
-    'alt', {}, ...
-    'vel', {}, ...
-    'VT', {}, ...
-    'acc', {}, ...
-    'euler', {}, ...
-    'xhat', {}, ...
+    'vN', {}, ...
+    'vE', {}, ...
+    'vD', {}, ...
+    'V3D', {}, ...
+    'VT_xplane', {}, ...
     'color', {} ...
 );
 
-%% Modelo matemático
-if use_modelo
-    try
-        [data, t] = get_out_signal(out_local, {'Y'});
-
-        s = new_series('Modelo', 'modelo', colors.modelo);
-        s.t = t;
-        s.N = data(:,10);
-        s.E = data(:,11);
-        s.alt = data(:,12);
-
-        if size(data,2) >= 3
-            s.VT = sqrt(data(:,1).^2 + data(:,2).^2 + data(:,3).^2);
-        end
-
-        series(end+1) = s;
-    catch ME
-        warning('Modelo out.Y não encontrado. Erro: %s', ME.message);
-    end
-end
-
-%% XPlane
+%% XPlane referência
 if use_xplane_ref
     try
         [data, t] = get_out_signal(out_local, {'XplaneSimulationData'});
 
         s = new_series('XPlane', 'xplane', colors.xplane);
+
         s.t = t;
-        s.VT = data(:,1);
-        s.alt = data(:,4);
-        s.N = data(:,9);
-        s.E = data(:,10);
+
+        % XPlane:
+        % 14: vN
+        % 15: vE
+        % 16: vD
+        s.vN = data(:,14);
+        s.vE = data(:,15);
+        s.vD = data(:,16);
+
+        s.V3D = sqrt(s.vN.^2 + s.vE.^2 + s.vD.^2);
+
+        % VT do XPlane:
+        % 1: true airspeed
+        s.VT_xplane = data(:,1);
 
         series(end+1) = s;
     catch ME
@@ -210,181 +187,280 @@ end
 idx_ref = find(strcmp({series.key}, 'xplane'), 1);
 
 if isempty(idx_ref)
-    warning('XPlane não foi carregado. Erros contra referência não serão plotados.');
+    error('XPlane precisa estar carregado como referência.');
 end
+
+ref = series(idx_ref);
 
 %% ===================== FIGURA =====================
 
-figure('Name','Comparação Navegação', 'Position',[80 40 1650 950]);
+figure('Name','Comparação ALL5 - Velocidades e MSE', ...
+       'Position',[80 40 1650 1050]);
 
-%% 1 - Trajetória 3D
+%% 1 - Velocidade Norte
 
-subplot(3,2,1)
+subplot(5,2,1)
 hold on
 
 for k = 1:numel(series)
-    plot3(series(k).E, series(k).N, series(k).alt, ...
+    plot(series(k).t, series(k).vN, ...
         'Color', series(k).color, 'LineWidth', lineWidth);
-end
-
-plot_waypoints_3d(WPs_local);
-
-grid on
-axis equal
-xlabel('Leste [m]')
-ylabel('Norte [m]')
-zlabel('Altitude [m]')
-title('Trajetória 3D')
-legend(build_legend(series, WPs_local), 'Location','best')
-view(30,25)
-hold off
-
-%% 2 - Vista superior
-
-subplot(3,2,5)
-hold on
-
-for k = 1:numel(series)
-    plot(series(k).E, series(k).N, ...
-        'Color', series(k).color, 'LineWidth', lineWidth);
-end
-
-plot_waypoints_2d(WPs_local, R_accept_local);
-
-grid on
-axis equal
-xlabel('Leste [m]')
-ylabel('Norte [m]')
-title('Vista Superior')
-legend(build_legend(series, WPs_local), 'Location','best')
-hold off
-
-%% 3 - Altitude
-
-subplot(3,2,3)
-hold on
-
-for k = 1:numel(series)
-    plot(series(k).t, series(k).alt, ...
-        'Color', series(k).color, 'LineWidth', lineWidth);
-end
-
-plot_altitude_waypoints(WPs_local);
-plot_correction_windows(gca, range_time_without_correction_local, true);
-
-grid on
-xlabel('Tempo [s]')
-ylabel('Altitude [m]')
-title('Altitude')
-legend({series.name}, 'Location','best')
-hold off
-
-%% 4 - Velocidade escalar
-
-subplot(3,2,2)
-hold on
-
-for k = 1:numel(series)
-    if ~isempty(series(k).VT)
-        plot(series(k).t, series(k).VT, ...
-            'Color', series(k).color, 'LineWidth', lineWidth);
-    end
 end
 
 plot_correction_windows(gca, range_time_without_correction_local, false);
 
 grid on
 xlabel('Tempo [s]')
-ylabel('Velocidade [m/s]')
-title('Velocidade Escalar')
-legend(build_vt_legend(series), 'Location','best')
+ylabel('V_N [m/s]')
+title('Velocidade Norte - V_N')
+legend({series.name}, 'Location','best')
 hold off
 
-%% 5 - Erro horizontal vs XPlane
+%% 2 - MSE V_N
 
-subplot(3,2,4)
+subplot(5,2,2)
 hold on
 
-if ~isempty(idx_ref)
+for k = 1:numel(series)
 
-    ref = series(idx_ref);
-
-    for k = 1:numel(series)
-
-        if k == idx_ref
-            continue;
-        end
-
-        [tc, Nref, Nk] = align_by_time(ref.t, ref.N, series(k).t, series(k).N);
-        [~,  Eref, Ek] = align_by_time(ref.t, ref.E, series(k).t, series(k).E);
-
-        erro_h = sqrt((Nref - Nk).^2 + (Eref - Ek).^2);
-
-        plot(tc, erro_h, ...
-            'Color', series(k).color, 'LineWidth', lineWidth);
+    if k == idx_ref
+        continue;
     end
 
-    yline(0, 'k--', 'XPlane ref');
-    plot_correction_windows(gca, range_time_without_correction_local, false);
+    [tc, ref_i, y_i] = align_by_time(ref.t, ref.vN, series(k).t, series(k).vN);
 
-    grid on
-    xlabel('Tempo [s]')
-    ylabel('Erro horizontal [m]')
-    title('Erro Horizontal vs XPlane')
-    legend(build_error_legend(series, idx_ref), 'Location','best')
+    e2 = (ref_i - y_i).^2;
+    mse_vN = cumulative_mean(e2);
+
+    plot(tc, mse_vN, ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
 end
 
+plot_correction_windows(gca, range_time_without_correction_local, true);
+
+grid on
+xlabel('Tempo [s]')
+ylabel('MSE V_N [(m/s)^2]')
+title('MSE V_N Acumulado vs XPlane')
+legend(build_error_legend(series, idx_ref), 'Location','best')
 hold off
 
-%% 6 - Erro altitude vs XPlane
+%% 3 - Velocidade Leste
 
-subplot(3,2,6)
+subplot(5,2,3)
 hold on
 
-if ~isempty(idx_ref)
-
-    ref = series(idx_ref);
-
-    for k = 1:numel(series)
-
-        if k == idx_ref
-            continue;
-        end
-
-        [tc, alt_ref, alt_k] = align_by_time(ref.t, ref.alt, series(k).t, series(k).alt);
-
-        erro_alt = alt_ref - alt_k;
-
-        plot(tc, erro_alt, ...
-            'Color', series(k).color, 'LineWidth', lineWidth);
-    end
-
-    yline(0, 'k--', 'XPlane ref');
-    plot_correction_windows(gca, range_time_without_correction_local, false);
-
-    grid on
-    xlabel('Tempo [s]')
-    ylabel('Erro altitude [m]')
-    title('Erro de Altitude vs XPlane')
-    legend(build_error_legend(series, idx_ref), 'Location','best')
+for k = 1:numel(series)
+    plot(series(k).t, series(k).vE, ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
 end
 
+plot_correction_windows(gca, range_time_without_correction_local, false);
+
+grid on
+xlabel('Tempo [s]')
+ylabel('V_E [m/s]')
+title('Velocidade Leste - V_E')
+legend({series.name}, 'Location','best')
 hold off
 
-sgtitle('XPlane x EKFs')
+%% 4 - MSE V_E
+
+subplot(5,2,4)
+hold on
+
+for k = 1:numel(series)
+
+    if k == idx_ref
+        continue;
+    end
+
+    [tc, ref_i, y_i] = align_by_time(ref.t, ref.vE, series(k).t, series(k).vE);
+
+    e2 = (ref_i - y_i).^2;
+    mse_vE = cumulative_mean(e2);
+
+    plot(tc, mse_vE, ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
+end
+
+plot_correction_windows(gca, range_time_without_correction_local, false);
+
+grid on
+xlabel('Tempo [s]')
+ylabel('MSE V_E [(m/s)^2]')
+title('MSE V_E Acumulado vs XPlane')
+legend(build_error_legend(series, idx_ref), 'Location','best')
+hold off
+
+%% 5 - Velocidade Down
+
+subplot(5,2,5)
+hold on
+
+for k = 1:numel(series)
+    plot(series(k).t, series(k).vD, ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
+end
+
+plot_correction_windows(gca, range_time_without_correction_local, false);
+
+grid on
+xlabel('Tempo [s]')
+ylabel('V_D [m/s]')
+title('Velocidade Down - V_D')
+legend({series.name}, 'Location','best')
+hold off
+
+%% 6 - MSE V_D
+
+subplot(5,2,6)
+hold on
+
+for k = 1:numel(series)
+
+    if k == idx_ref
+        continue;
+    end
+
+    [tc, ref_i, y_i] = align_by_time(ref.t, ref.vD, series(k).t, series(k).vD);
+
+    e2 = (ref_i - y_i).^2;
+    mse_vD = cumulative_mean(e2);
+
+    plot(tc, mse_vD, ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
+end
+
+plot_correction_windows(gca, range_time_without_correction_local, false);
+
+grid on
+xlabel('Tempo [s]')
+ylabel('MSE V_D [(m/s)^2]')
+title('MSE V_D Acumulado vs XPlane')
+legend(build_error_legend(series, idx_ref), 'Location','best')
+hold off
+
+%% 7 - Velocidade em Relação ao Solo 3D - NED
+
+subplot(5,2,7)
+hold on
+
+for k = 1:numel(series)
+    plot(series(k).t, series(k).V3D, ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
+end
+
+if ~isempty(ref.VT_xplane)
+    plot(ref.t, ref.VT_xplane, '--', ...
+        'Color', colors.xplane_vt, ...
+        'LineWidth', lineWidth);
+end
+
+plot_correction_windows(gca, range_time_without_correction_local, false);
+
+grid on
+xlabel('Tempo [s]')
+ylabel('V_{3D} [m/s]')
+title('Velocidade em Relação ao Solo 3D - NED')
+
+legend_labels = {series.name};
+legend_labels{end+1} = 'VT XPlane - true airspeed';
+
+legend(legend_labels, 'Location','best')
+hold off
+
+%% 8 - MSE V_3D
+
+subplot(5,2,8)
+hold on
+
+for k = 1:numel(series)
+
+    if k == idx_ref
+        continue;
+    end
+
+    [tc, ref_i, y_i] = align_by_time(ref.t, ref.V3D, series(k).t, series(k).V3D);
+
+    e2 = (ref_i - y_i).^2;
+    mse_v3d = cumulative_mean(e2);
+
+    plot(tc, mse_v3d, ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
+end
+
+plot_correction_windows(gca, range_time_without_correction_local, false);
+
+grid on
+xlabel('Tempo [s]')
+ylabel('MSE V_{3D} [(m/s)^2]')
+title('MSE V_{3D} Acumulado vs XPlane')
+legend(build_error_legend(series, idx_ref), 'Location','best')
+hold off
+
+%% 9/10 - Erro comparativo V_3D
+
+subplot(5,2,[9 10])
+hold on
+
+for k = 1:numel(series)
+
+    if k == idx_ref
+        continue;
+    end
+
+    [tc, ref_i, y_i] = align_by_time(ref.t, ref.V3D, series(k).t, series(k).V3D);
+
+    erro_v3d = ref_i - y_i;
+
+    plot(tc, erro_v3d, ...
+        'Color', series(k).color, 'LineWidth', lineWidth);
+end
+
+yline(0, 'k--', 'XPlane ref');
+plot_correction_windows(gca, range_time_without_correction_local, false);
+
+grid on
+xlabel('Tempo [s]')
+ylabel('Erro V_{3D} [m/s]')
+title('Erro de Velocidade em Relação ao Solo 3D - NED vs XPlane')
+legend(build_error_legend(series, idx_ref), 'Location','best')
+hold off
+
+annotation('textbox', [0 0.955 1 0.035], ...
+    'String', 'Velocidades NED, V_{3D} e MSE - XPlane x Estimadores', ...
+    'HorizontalAlignment', 'center', ...
+    'VerticalAlignment', 'middle', ...
+    'FontWeight', 'bold', ...
+    'FontSize', 14, ...
+    'EdgeColor', 'none');
 
 %% ===================== ESTATÍSTICAS =====================
 
-fprintf('\n--- Séries carregadas ---\n');
+fprintf('\n--- Métricas finais de velocidade vs XPlane ---\n');
 
 for k = 1:numel(series)
-    fprintf('%-12s | N0=%8.2f E0=%8.2f Alt0=%8.2f | Nf=%8.2f Ef=%8.2f Altf=%8.2f\n', ...
-        series(k).name, ...
-        series(k).N(1), series(k).E(1), series(k).alt(1), ...
-        series(k).N(end), series(k).E(end), series(k).alt(end));
+
+    if k == idx_ref
+        continue;
+    end
+
+    [~, vN_ref, vN_k]   = align_by_time(ref.t, ref.vN,  series(k).t, series(k).vN);
+    [~, vE_ref, vE_k]   = align_by_time(ref.t, ref.vE,  series(k).t, series(k).vE);
+    [~, vD_ref, vD_k]   = align_by_time(ref.t, ref.vD,  series(k).t, series(k).vD);
+    [~, V3D_ref, V3D_k] = align_by_time(ref.t, ref.V3D, series(k).t, series(k).V3D);
+
+    rmse_vN  = sqrt(mean((vN_ref - vN_k).^2));
+    rmse_vE  = sqrt(mean((vE_ref - vE_k).^2));
+    rmse_vD  = sqrt(mean((vD_ref - vD_k).^2));
+    rmse_V3D = sqrt(mean((V3D_ref - V3D_k).^2));
+
+    fprintf('%-12s | RMSE V_N=%.3f m/s | RMSE V_E=%.3f m/s | RMSE V_D=%.3f m/s | RMSE V3D=%.3f m/s\n', ...
+        series(k).name, rmse_vN, rmse_vE, rmse_vD, rmse_V3D);
 end
 
-fprintf('\n========== FIM DA COMPARAÇÃO ==========\n');
+fprintf('\n========== FIM DO PLOT_COMPARE_ALL5 ==========\n');
 
 %% ========================================================================
 % FUNÇÕES LOCAIS
@@ -395,14 +471,11 @@ function s = new_series(name, key, color)
     s.name = name;
     s.key = key;
     s.t = [];
-    s.N = [];
-    s.E = [];
-    s.alt = [];
-    s.vel = [];
-    s.VT = [];
-    s.acc = [];
-    s.euler = [];
-    s.xhat = [];
+    s.vN = [];
+    s.vE = [];
+    s.vD = [];
+    s.V3D = [];
+    s.VT_xplane = [];
     s.color = color;
 
 end
@@ -413,20 +486,13 @@ function s = read_dbn_format(data, t, name, key, color)
 
     s.t = t;
 
-    s.euler = data(:,1:3);
-    s.vel   = data(:,4:6);
+    % DBN:
+    % 4:6 = [vN vE vD]
+    s.vN = data(:,4);
+    s.vE = data(:,5);
+    s.vD = data(:,6);
 
-    pos = data(:,7:9);
-
-    s.N = pos(:,1);
-    s.E = pos(:,2);
-    s.alt = -pos(:,3);
-
-    if size(data,2) >= 12
-        s.acc = data(:,10:12);
-    end
-
-    s.VT = sqrt(s.vel(:,1).^2 + s.vel(:,2).^2 + s.vel(:,3).^2);
+    s.V3D = sqrt(s.vN.^2 + s.vE.^2 + s.vD.^2);
 
 end
 
@@ -436,28 +502,13 @@ function s = read_ekf_format(data, t, name, key, color)
 
     s.t = t;
 
-    % Novo formato dos EKFs:
-    % 1:3    pos_out   = [N E altitude]
-    % 4:6    euler_out
-    % 7:9    vel_out
-    % 10:12  acc_n_out
-    % 13:33  xhat_out
+    % EKF:
+    % 7:9 = [vN vE vD]
+    s.vN = data(:,7);
+    s.vE = data(:,8);
+    s.vD = data(:,9);
 
-    pos = data(:,1:3);
-
-    s.N = pos(:,1);
-    s.E = pos(:,2);
-    s.alt = pos(:,3);
-
-    s.euler = data(:,4:6);
-    s.vel   = data(:,7:9);
-    s.acc   = data(:,10:12);
-
-    s.VT = sqrt(s.vel(:,1).^2 + s.vel(:,2).^2 + s.vel(:,3).^2);
-
-    if size(data,2) >= 33
-        s.xhat = data(:,13:33);
-    end
+    s.V3D = sqrt(s.vN.^2 + s.vE.^2 + s.vD.^2);
 
 end
 
@@ -544,35 +595,10 @@ function [tc, yref_i, y_i] = align_by_time(tref, yref, t, y)
 
 end
 
-function labels = build_legend(series, WPs_local)
+function mse = cumulative_mean(x)
 
-    labels = cell(1,numel(series));
-
-    for k = 1:numel(series)
-        labels{k} = series(k).name;
-    end
-
-    if ~isempty(WPs_local)
-        labels{end+1} = 'Waypoints';
-    end
-
-end
-
-function labels = build_vt_legend(series)
-
-    labels = {};
-
-    for k = 1:numel(series)
-
-        if ~isempty(series(k).VT)
-
-            if strcmp(series(k).key, 'xplane')
-                labels{end+1} = 'XPlane true airspeed'; %#ok<AGROW>
-            else
-                labels{end+1} = series(k).name; %#ok<AGROW>
-            end
-        end
-    end
+    n = (1:length(x)).';
+    mse = cumsum(x) ./ n;
 
 end
 
@@ -584,50 +610,6 @@ function labels = build_error_legend(series, idx_ref)
 
         if k ~= idx_ref
             labels{end+1} = series(k).name; %#ok<AGROW>
-        end
-    end
-
-end
-
-function plot_waypoints_3d(WPs_local)
-
-    if ~isempty(WPs_local)
-        plot3(WPs_local(:,2), WPs_local(:,1), WPs_local(:,3), ...
-            'ks', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
-    end
-
-end
-
-function plot_waypoints_2d(WPs_local, R_accept_local)
-
-    if ~isempty(WPs_local)
-
-        plot(WPs_local(:,2), WPs_local(:,1), ...
-            'ks', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
-
-        if ~isempty(R_accept_local)
-
-            th = linspace(0, 2*pi, 100);
-
-            for j = 1:size(WPs_local,1)
-                plot(WPs_local(j,2) + R_accept_local*cos(th), ...
-                     WPs_local(j,1) + R_accept_local*sin(th), ...
-                     'k--', 'LineWidth', 0.5);
-            end
-        end
-    end
-
-end
-
-function plot_altitude_waypoints(WPs_local)
-
-    if ~isempty(WPs_local)
-
-        alt_wps = unique(WPs_local(:,3));
-
-        for j = 1:length(alt_wps)
-            yline(alt_wps(j), 'k--', sprintf('%.0f m', alt_wps(j)), ...
-                'LineWidth', 0.6, 'LabelHorizontalAlignment', 'left');
         end
     end
 
@@ -652,7 +634,7 @@ function plot_correction_windows(ax, range_no_corr, show_labels, label_y_value)
         y_span = 1;
     end
 
-    %% Calcula posicao vertical do texto
+    %% Calcula posição vertical do texto
     if ~isempty(label_y_value)
         label_y = label_y_value;
     else
@@ -680,7 +662,7 @@ function plot_correction_windows(ax, range_no_corr, show_labels, label_y_value)
         end
     end
 
-    %% Plota janelas sem correcao
+    %% Plota janelas sem correção
     for kk = 1:size(range_no_corr,1)
 
         ti = range_no_corr(kk,1);
@@ -713,7 +695,7 @@ function plot_correction_windows(ax, range_no_corr, show_labels, label_y_value)
         if show_labels
             text(ax, ...
                 (ti + tf)/2, label_y, ...
-                sprintf('sem GPS e/ou Yaw (Psi) %d', kk), ...
+                sprintf('sem correção %d', kk), ...
                 'HorizontalAlignment', 'center', ...
                 'VerticalAlignment', 'middle', ...
                 'FontSize', 8, ...

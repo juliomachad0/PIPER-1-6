@@ -7,3 +7,5 @@
 % evalin('base', 'plot3d_voo_DBN');
 % Plotar os 3 em um só - comparação
 evalin('base', 'plot_compare_all');
+evalin('base', 'plot_compare_all3');
+
