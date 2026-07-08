@@ -103,6 +103,45 @@ EKF_INDI_params.R_vel = (0.05^2) * eye(3);
 EKF_INDI_params.lambda_y = 1/60;
 EKF_INDI_params.sigma_by = sqrt(2*EKF_INDI_params.lambda_y) * 3.0;
 
+%% Medida auxiliar de yaw / magnetometro
+
+if isfield(sensors, 'ist8310') && isfield(sensors.ist8310, 'mag')
+
+    mag = sensors.ist8310.mag;
+
+    if isfield(mag, 'Fs')
+        EKF_INDI_params.mag_Fs = mag.Fs;
+    elseif isfield(mag, 'Ts')
+        EKF_INDI_params.mag_Fs = 1/mag.Ts;
+    else
+        EKF_INDI_params.mag_Fs = 50;
+    end
+
+    EKF_INDI_params.mag_period = 1/EKF_INDI_params.mag_Fs;
+
+    if isfield(mag, 'mag_n_ref_uT')
+        mag_horiz_norm = norm(mag.mag_n_ref_uT(1:2));
+    else
+        mag_horiz_norm = norm([23; -5]);
+    end
+
+    if isfield(mag, 'sigma_noise_uT')
+        sigma_yaw_mag = mag.sigma_noise_uT / max(mag_horiz_norm, 1e-6);
+        sigma_yaw_mag = max(sigma_yaw_mag, deg2rad(0.8));
+    else
+        sigma_yaw_mag = deg2rad(2.0);
+    end
+
+    EKF_INDI_params.R_yaw = sigma_yaw_mag^2;
+
+else
+
+    EKF_INDI_params.mag_Fs = 50;
+    EKF_INDI_params.mag_period = 1/EKF_INDI_params.mag_Fs;
+    EKF_INDI_params.R_yaw = deg2rad(2.0)^2;
+
+end
+
 %% Estado inicial completo
 nx = 21;
 x0 = zeros(nx,1);

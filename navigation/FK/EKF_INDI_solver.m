@@ -1,5 +1,5 @@
 function [euler_out, vel_out, pos_out, acc_n_out, xhat_out] = EKF_INDI_solver( ...
-    acc_b_in, gyro_b_in, pos_meas_in, vel_meas_in, reset, sample_valid, t_now, EKF_INDI_params)
+    acc_b_in, gyro_b_in, pos_meas_in, vel_meas_in, eul_meas_in, reset, sample_valid, t_now, EKF_INDI_params)
 % EKF_INDI_solver
 %
 % Adaptacao para Simulink do EKF indireto 3D isolado.
@@ -12,6 +12,7 @@ function [euler_out, vel_out, pos_out, acc_n_out, xhat_out] = EKF_INDI_solver( .
 %   gyro_b_in    = [p; q; r] [rad/s]
 %   pos_meas_in  = [N; E; h] ou [N; E; D], conforme params.pos_meas_mode
 %   vel_meas_in  = [vN; vE; vD] [m/s]
+%   eul_meas_in  = [roll; pitch; yaw] [rad], usa apenas yaw
 %   reset
 %   sample_valid
 %   t_now
@@ -20,7 +21,7 @@ function [euler_out, vel_out, pos_out, acc_n_out, xhat_out] = EKF_INDI_solver( .
 % Saidas:
 %   euler_out = [phi; theta; psi]
 %   vel_out   = [vN; vE; vD]
-%   pos_out   = [N; E; D]
+%   pos_out   = [N; E; altitude]
 %   acc_n_out = aceleracao estimada em NED
 %   xhat_out  = estado completo 21x1
 
@@ -30,6 +31,7 @@ persistent t_prev_ID
 persistent initialized_ID
 persistent last_reset_token_ID
 persistent next_gps_time_ID
+persistent next_mag_time_ID
 persistent h0_meas_ID
 
 nx = 21;
@@ -73,6 +75,12 @@ if reset || ~initialized_ID || new_params_loaded
 
     next_gps_time_ID = t_now + EKF_INDI_params.gps_period;
 
+    if isfield(EKF_INDI_params, 'mag_period')
+        next_mag_time_ID = t_now + EKF_INDI_params.mag_period;
+    else
+        next_mag_time_ID = t_now + 0.02;
+    end
+
     % pos_meas_in tipicamente vem como [N; E; h] do X-Plane.
     h0_meas_ID = pos_meas_in(3);
 
@@ -107,6 +115,12 @@ R_pos = EKF_INDI_params.R_pos;
 R_vel = EKF_INDI_params.R_vel;
 lambda_y = EKF_INDI_params.lambda_y;
 beta_y = exp(-lambda_y*dt);
+
+if isfield(EKF_INDI_params, 'R_yaw')
+    R_yaw = EKF_INDI_params.R_yaw;
+else
+    R_yaw = deg2rad(2.0)^2;
+end
 
 if isfield(EKF_INDI_params, 'acc_input_is_translational')
     acc_input_is_translational = EKF_INDI_params.acc_input_is_translational;
@@ -200,7 +214,7 @@ P_ID = 0.5*(P_ID + P_ID');
 
 x_hat_ID = x_pred;
 
-%% Atualizacao auxiliar a 1 Hz
+%% Atualizacao auxiliar GPS
 do_gps_update = false;
 if t_now >= next_gps_time_ID
     do_gps_update = true;
@@ -257,6 +271,51 @@ if do_gps_update
     P_ID = (eye(nx) - K_vel*H_vel)*P_ID*(eye(nx) - K_vel*H_vel)' + K_vel*R_vel*K_vel';
     P_ID = 0.5*(P_ID + P_ID');
 
+end
+
+%% Atualizacao de yaw pelo magnetometro
+do_mag_update = false;
+
+if t_now >= next_mag_time_ID
+    do_mag_update = true;
+
+    if isfield(EKF_INDI_params, 'mag_period')
+        mag_period = EKF_INDI_params.mag_period;
+    else
+        mag_period = 0.02;
+    end
+
+    while next_mag_time_ID <= t_now
+        next_mag_time_ID = next_mag_time_ID + mag_period;
+    end
+end
+
+if do_mag_update
+
+    % eul_meas_in = [roll; pitch; yaw]
+    % Apenas yaw e usado na correcao.
+    yaw_meas = eul_meas_in(3);
+
+    if isfinite(yaw_meas)
+
+        H_yaw = zeros(1,nx);
+        H_yaw(9) = 1;
+
+        yaw_hat = x_hat_ID(9);
+
+        innov_yaw = wrapToPi_local(yaw_meas - yaw_hat);
+
+        S_yaw = H_yaw*P_ID*H_yaw' + R_yaw;
+        K_yaw = P_ID*H_yaw'/S_yaw;
+
+        dx_hat_yaw = K_yaw*innov_yaw;
+        x_hat_ID = x_hat_ID + dx_hat_yaw;
+        x_hat_ID(7:9) = wrapToPi_local(x_hat_ID(7:9));
+
+        P_ID = (eye(nx) - K_yaw*H_yaw)*P_ID*(eye(nx) - K_yaw*H_yaw)' + K_yaw*R_yaw*K_yaw';
+        P_ID = 0.5*(P_ID + P_ID');
+
+    end
 end
 
 %% Atualizar tempo

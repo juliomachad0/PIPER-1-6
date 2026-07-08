@@ -35,7 +35,7 @@ function ins_initial_state_xplane()
         sendPOSI([lla(1), lla(2), target_msl, 0, -0.121684, psi0, 0], 0, GlobalSocket);
         pause(0.2);% anterior pause(0.5);
         abs_V0 = WPs(1,4);
-        fprintf("Velocidade absoluta inicial: %.2f [m/s] n\",abs_V0);
+        fprintf("Velocidade absoluta inicial: %.2f [m/s] \n",abs_V0);
         hdg_rad = psi0 * pi/180;
         sendDREF('sim/flightmodel/position/local_vx',  abs_V0*sin(hdg_rad), GlobalSocket);
         sendDREF('sim/flightmodel/position/local_vy',  0,                GlobalSocket);
