@@ -12,7 +12,9 @@ addpath(fullfile(rootDir, 'guiagem'));
 % range_time_without_gps: if [0 0], GPS considered during all trajectory
 % [ti tf]: during ti and tf (ti <= t <= tf) GPS and yaw will not be used
 % for correction
+% use [a b; c d; e f] for multiples time ranges
 range_time_without_correction = [0 0];
+assignin('base','range_time_without_correction',range_time_without_correction);
 
 %% Initiating simulation
 inicializar; % Start parameters, models, functions and XPlane connection

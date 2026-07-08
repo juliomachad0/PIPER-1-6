@@ -1,5 +1,5 @@
 function ist8310 = ins_init_ist8310(seeds_ist8310)
-%INS_INIT_IST8310 Inicializa parâmetros do magnetômetro IST8310.
+%INS_INIT_IST8310 Inicializa parametros do magnetometro IST8310.
 
 %% (0) Reprodutibilidade
 if nargin >= 1 && isfield(seeds_ist8310,'mag') && isfield(seeds_ist8310.mag,'params')
@@ -8,7 +8,7 @@ else
     rng(11);
 end
 
-%% (1) Parâmetros básicos
+%% (1) Parametros basicos
 mag = struct();
 
 mag.Ts = 1/200;
@@ -24,7 +24,7 @@ mag.bits = 16;
 mag.sens_LSB_per_uT = 3.3;
 mag.resolution_uT_per_LSB = 1/mag.sens_LSB_per_uT;
 
-%% (2) Parâmetros de erro
+%% (2) Parametros de erro
 mag.linearity = [0.01 0.001 0.001];
 
 mag.offset0_uT = [0.3 -0.3 0.3];
@@ -43,7 +43,9 @@ mag.sigma_noise_uT = mag.noise_density_uT_sqrtHz * sqrt(mag.noise_BW_Hz);
 mag.dead_zone_uT = 0.05;
 mag.T_ref = 25;
 
-%% (3) Campo magnético local NED
+%% (3) Campo magnetico local NED
+% Fallback interno. Na simulacao online, a conversao para heading verdadeiro
+% deve usar magnetic_variation_rad vindo do X-Plane.
 mag.mag_n_ref_uT = [23; -5; -38];
 
 mag.declination_rad = atan2(mag.mag_n_ref_uT(2), mag.mag_n_ref_uT(1));
@@ -53,7 +55,7 @@ a = mag.misalignment_rad;
 
 mag.M_align = [ ...
     1,  a, 0; ...
-    -a,  1, 0; ...
+   -a,  1, 0; ...
     0,  0, 1];
 
 c = mag.cross_axis;
@@ -81,7 +83,7 @@ mag.k3 = (2*rand(1,3)-1).*mag.linearity;
 mag.raw_min_LSB = -2^(mag.bits-1);
 mag.raw_max_LSB =  2^(mag.bits-1) - 1;
 
-%% (7) Seeds para ruído no Simulink
+%% (7) Seeds para ruido no Simulink
 if nargin >= 1 && isfield(seeds_ist8310,'mag') && isfield(seeds_ist8310.mag,'noise')
     mag.noise_seed = seeds_ist8310.mag.noise;
 else

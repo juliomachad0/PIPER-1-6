@@ -1,6 +1,6 @@
 function [euler_out, vel_out, pos_out, acc_n_out, xhat_out] = EKF_INDI_EM_solver( ...
-    acc_b_in, gyro_b_in, pos_meas_in, vel_meas_in, reset, sample_valid, t_now, EKF_INDI_params)
-% EKF_INDI_solver
+    acc_b_in, gyro_b_in, pos_meas_in, vel_meas_in, eul_meas_in, reset, sample_valid, t_now, EKF_INDI_params)
+% EKF_INDI_EM_solver
 %
 % Adaptacao para Simulink do EKF indireto 3D isolado.
 %
@@ -12,6 +12,7 @@ function [euler_out, vel_out, pos_out, acc_n_out, xhat_out] = EKF_INDI_EM_solver
 %   gyro_b_in    = [p; q; r] [rad/s]
 %   pos_meas_in  = [N; E; h] ou [N; E; D], conforme params.pos_meas_mode
 %   vel_meas_in  = [vN; vE; vD] [m/s]
+%   eul_meas_in  = [phi; theta; psi] [rad], usa apenas yaw/psi
 %   reset
 %   sample_valid
 %   t_now
@@ -20,7 +21,7 @@ function [euler_out, vel_out, pos_out, acc_n_out, xhat_out] = EKF_INDI_EM_solver
 % Saidas:
 %   euler_out = [phi; theta; psi]
 %   vel_out   = [vN; vE; vD]
-%   pos_out   = [N; E; D]
+%   pos_out   = [N; E; altitude]
 %   acc_n_out = aceleracao estimada em NED
 %   xhat_out  = estado completo 21x1
 
@@ -30,6 +31,7 @@ persistent t_prev_IEM
 persistent initialized_IEM
 persistent last_reset_token_IEM
 persistent next_gps_time_IEM
+persistent next_mag_time_IEM
 persistent h0_meas_IEM
 
 nx = 21;
@@ -73,6 +75,12 @@ if reset || ~initialized_IEM || new_params_loaded
 
     next_gps_time_IEM = t_now + EKF_INDI_params.gps_period;
 
+    if isfield(EKF_INDI_params, 'mag_period')
+        next_mag_time_IEM = t_now + EKF_INDI_params.mag_period;
+    else
+        next_mag_time_IEM = t_now + 0.02;
+    end
+
     % pos_meas_in tipicamente vem como [N; E; h] do X-Plane.
     h0_meas_IEM = pos_meas_in(3);
 
@@ -107,6 +115,21 @@ R_pos = EKF_INDI_params.R_pos;
 R_vel = EKF_INDI_params.R_vel;
 lambda_y = EKF_INDI_params.lambda_y;
 beta_y = exp(-lambda_y*dt);
+
+if isfield(EKF_INDI_params, 'R_yaw')
+    R_yaw = EKF_INDI_params.R_yaw;
+else
+    R_yaw = deg2rad(5.0)^2;
+end
+
+% Piso de seguranca para evitar correcao agressiva demais
+R_yaw = max(R_yaw, deg2rad(3.0)^2);
+
+if isfield(EKF_INDI_params, 'yaw_gate_rad')
+    yaw_gate_rad = EKF_INDI_params.yaw_gate_rad;
+else
+    yaw_gate_rad = deg2rad(30.0);
+end
 
 if isfield(EKF_INDI_params, 'acc_input_is_translational')
     acc_input_is_translational = EKF_INDI_params.acc_input_is_translational;
@@ -200,7 +223,7 @@ P_IEM = 0.5*(P_IEM + P_IEM');
 
 x_hat_IEM = x_pred;
 
-%% Atualizacao auxiliar a 1 Hz
+%% Atualizacao auxiliar GPS a 1 Hz
 do_gps_update = false;
 if t_now >= next_gps_time_IEM
     do_gps_update = true;
@@ -257,6 +280,63 @@ if do_gps_update
     P_IEM = (eye(nx) - K_vel*H_vel)*P_IEM*(eye(nx) - K_vel*H_vel)' + K_vel*R_vel*K_vel';
     P_IEM = 0.5*(P_IEM + P_IEM');
 
+end
+
+%% Atualizacao de yaw pelo magnetometro
+% Usa apenas eul_meas_in(3). Roll e pitch medidos nao sao usados.
+
+do_mag_update = false;
+
+if isempty(next_mag_time_IEM)
+    if isfield(EKF_INDI_params, 'mag_period')
+        next_mag_time_IEM = t_now + EKF_INDI_params.mag_period;
+    else
+        next_mag_time_IEM = t_now + 0.02;
+    end
+end
+
+if t_now >= next_mag_time_IEM
+    do_mag_update = true;
+
+    if isfield(EKF_INDI_params, 'mag_period')
+        mag_period = EKF_INDI_params.mag_period;
+    else
+        mag_period = 0.02;
+    end
+
+    while next_mag_time_IEM <= t_now
+        next_mag_time_IEM = next_mag_time_IEM + mag_period;
+    end
+end
+
+if do_mag_update
+
+    yaw_meas = eul_meas_in(3);
+
+    if isfinite(yaw_meas)
+
+        yaw_hat = x_hat_IEM(9);
+        innov_yaw = wrapToPi_local(yaw_meas - yaw_hat);
+
+        % Gate de seguranca para evitar correcao com medida absurda
+        if abs(innov_yaw) <= yaw_gate_rad
+
+            H_yaw = zeros(1,nx);
+            H_yaw(9) = 1;
+
+            S_yaw = H_yaw*P_IEM*H_yaw' + R_yaw;
+            K_yaw = P_IEM*H_yaw'/S_yaw;
+
+            dx_hat_yaw = K_yaw * innov_yaw;
+
+            x_hat_IEM = x_hat_IEM + dx_hat_yaw;
+            x_hat_IEM(7:9) = wrapToPi_local(x_hat_IEM(7:9));
+
+            P_IEM = (eye(nx) - K_yaw*H_yaw)*P_IEM*(eye(nx) - K_yaw*H_yaw)' + K_yaw*R_yaw*K_yaw';
+            P_IEM = 0.5*(P_IEM + P_IEM');
+
+        end
+    end
 end
 
 %% Atualizar tempo

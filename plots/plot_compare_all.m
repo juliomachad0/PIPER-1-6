@@ -14,22 +14,22 @@ use_dbn_em      = false;
 use_ekf_di      = true;
 use_ekf_di_em   =true;
 
-use_ekf_indi    = false;
-use_ekf_indi_em = false;
+use_ekf_indi    = true;
+use_ekf_indi_em = true;
 
 %% ===================== CORES =====================
 
-colors.modelo      = [0.000 0.250 1.000];
-colors.xplane      = [1.000 0.000 0.000];
+colors.modelo      = [1.000 0.000 0.600];  % rosa
+colors.xplane      = [0.000 0.500 0.000];  % verde escuro
 
-colors.dbn         = [0.000 0.650 0.000];
-colors.dbn_em      = [0.000 0.700 0.700];
+colors.dbn         = [1.000 0.000 1.000];  % magenta
+colors.dbn_em      = [0.500 0.500 0.500];  % cinza
 
-colors.ekf_di      = [0.850 0.325 0.098];
-colors.ekf_di_em   = [0.494 0.184 0.556];
+colors.ekf_di      = [0.000 0.000 1.000];  % azul
+colors.ekf_di_em   = [0.500 0.000 0.500];  % roxo
 
-colors.ekf_indi    = [0.929 0.694 0.125];
-colors.ekf_indi_em = [0.250 0.250 0.250];
+colors.ekf_indi    = [1.000 0.000 0.000];  % vermelho
+colors.ekf_indi_em = [0.500 0.250 0.000];  % marrom
 
 lineWidth = 1.4;
 
