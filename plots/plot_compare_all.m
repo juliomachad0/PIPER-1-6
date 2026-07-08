@@ -12,10 +12,10 @@ use_dbn         = false;
 use_dbn_em      = false;
 
 use_ekf_di      = true;
-use_ekf_di_em   = true;
+use_ekf_di_em   =false;
 
-use_ekf_indi    = true;
-use_ekf_indi_em = true;
+use_ekf_indi    = false;
+use_ekf_indi_em = false;
 
 %% ===================== CORES =====================
 

@@ -75,6 +75,44 @@ EKF_DI_params.lambda_y = lambda_y;
 sigma_by = sqrt(3)/30;
 EKF_DI_params.sigma_by = sigma_by;
 
+%% Parâmetros Magnetômetro / yaw
+
+if isfield(sensors, 'ist8310') && isfield(sensors.ist8310, 'mag')
+
+    mag = sensors.ist8310.mag;
+
+    if isfield(mag, 'Fs')
+        EKF_DI_params.mag_Fs = mag.Fs;
+    elseif isfield(mag, 'Ts')
+        EKF_DI_params.mag_Fs = 1/mag.Ts;
+    else
+        EKF_DI_params.mag_Fs = EKF_DI_params.gps_Fs;
+    end
+
+    EKF_DI_params.mag_period = 1/EKF_DI_params.mag_Fs;
+
+    if isfield(mag, 'mag_n_ref_uT')
+        mag_horiz_norm = norm(mag.mag_n_ref_uT(1:2));
+    else
+        mag_horiz_norm = norm([23; -5]);
+    end
+
+    if isfield(mag, 'sigma_noise_uT')
+        sigma_yaw_mag = max(mag.sigma_noise_uT / max(mag_horiz_norm, 1e-6), deg2rad(0.8));
+    else
+        sigma_yaw_mag = deg2rad(2.0);
+    end
+
+    EKF_DI_params.R_yaw = sigma_yaw_mag^2;
+
+else
+
+    EKF_DI_params.mag_Fs = 50;
+    EKF_DI_params.mag_period = 1/EKF_DI_params.mag_Fs;
+    EKF_DI_params.R_yaw = deg2rad(2.0)^2;
+
+end
+
 %% Estado inicial
 
 nx = 21;

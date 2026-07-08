@@ -1,23 +1,14 @@
-addpath(fullfile(rootDir, 'navigation', 'sensors'));
-addpath(fullfile(rootDir, 'navigation', 'plots'));
-%% Adding sensors paths
-addpath(fullfile(rootDir, 'navigation', 'sensors','ICM20689'));
-addpath(fullfile(rootDir, 'navigation', 'sensors','NEO8M'));
-addpath(fullfile(rootDir, 'navigation', 'sensors','IST8310'));
+%% INICIANDO SENSORES
 ins_init_sensors(); % load variables para o modelo e os dados dos sensores
-
-
 %% ========== DBN / Inertial Navigation Initialization ==========
-
-rootDir = fileparts(fileparts(mfilename('fullpath')));
-
-addpath(fullfile(rootDir, 'navigation', 'DBN'));
-
-% Placeholder. O DBN_params real será criado por init_DBN,
-% chamado dentro de ins_initial_state_xplane.m após reposicionar o X-Plane.
 DBN_params = struct();
 DBN_params.initialized = false;
-
 assignin('base', 'DBN_params', DBN_params);
-
-disp('--- DBN carregado no path. A inicialização real ocorrerá via init_DBN após posicionar o X-Plane. ---');
+% Placeholder. O DBN_params real será criado por init_DBN,
+% chamado dentro de ins_initial_state_xplane.m após reposicionar o X-Plane.
+% Essa struct também guarda os parametros de inicialização para os EKFs
+% Os EKFs também são inicializados em ins_initial_state_xplane.m 
+%% INFORMANDO
+fprintf("\nins_init_block: DBN_params carregado no path.\n" + ...
+    "A inicialização real ocorrerá via:\ninit_DBN, init_EKF_DI, " + ...
+    "init_EKF_INDI após posicionamento inicial no X-Plane.\n");

@@ -15,10 +15,10 @@ function gui_waypoints()
     global GlobalSocket;
     import XPlaneConnect.*;
     % Rodar inicializar.m no base workspace (carrega TODOS os parâmetros)
-    oldDir = pwd;
-    cd(rootDir);
-    evalin('base', 'inicializar');
-    cd(oldDir);
+    % oldDir = pwd;
+    % cd(rootDir);
+    % evalin('base', 'inicializar');
+    % cd(oldDir);
 
     % Importar variáveis necessárias do base workspace
     par_aero  = evalin('base', 'par_aero');

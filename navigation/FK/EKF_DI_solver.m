@@ -1,5 +1,6 @@
 function [euler_out, vel_out, pos_out, acc_n_out, xhat_out] = EKF_DI_solver( ...
-    acc_b_in, gyro_b_in, pos_meas_in, vel_meas_in, reset, sample_valid, t_now, EKF_DI_params)
+    acc_b_in, gyro_b_in, pos_meas_in, vel_meas_in, eul_meas_in, ...
+    reset, sample_valid, t_now, EKF_DI_params)
 
 persistent x_hat_D
 persistent P_D
@@ -7,6 +8,7 @@ persistent t_prev_D
 persistent initialized_D
 persistent last_reset_token_D
 persistent next_gps_time_D
+persistent next_mag_time_D
 persistent h0_meas_D
 
 nx = 21;
@@ -50,6 +52,12 @@ if reset || ~initialized_D || new_params_loaded
     initialized_D = true;
 
     next_gps_time_D = t_now + EKF_DI_params.gps_period;
+    % magnetometro - yaw
+    if isfield(EKF_DI_params, 'mag_period')
+        next_mag_time_D = t_now + EKF_DI_params.mag_period;
+    else
+        next_mag_time_D = t_now + 0.02;
+    end
 
     % pos_meas_in = [N; E; h]
     h0_meas_D = pos_meas_in(3);
@@ -90,7 +98,12 @@ Qw = EKF_DI_params.Qw;
 R_pos = EKF_DI_params.R_pos;
 R_vel = EKF_DI_params.R_vel;
 lambda_y = EKF_DI_params.lambda_y;
-
+% magnetometro - yaw
+if isfield(EKF_DI_params, 'R_yaw')
+    R_yaw = EKF_DI_params.R_yaw;
+else
+    R_yaw = deg2rad(2.0)^2;
+end
 beta_y = exp(-lambda_y*dt);
 
 %% Separar estados
@@ -240,6 +253,50 @@ if do_gps_update
 
 end
 
+%% Atualização de yaw pelo magnetômetro
+
+do_mag_update = false;
+
+if t_now >= next_mag_time_D
+    do_mag_update = true;
+
+    if isfield(EKF_DI_params, 'mag_period')
+        mag_period = EKF_DI_params.mag_period;
+    else
+        mag_period = 0.02;
+    end
+
+    while next_mag_time_D <= t_now
+        next_mag_time_D = next_mag_time_D + mag_period;
+    end
+end
+
+if do_mag_update
+
+    yaw_meas = eul_meas_in(3);
+
+    if isfinite(yaw_meas)
+
+        H_yaw = zeros(1,nx);
+        H_yaw(9) = 1;
+
+        yaw_hat = x_hat_D(9);
+
+        innov_yaw = wrapToPi_local(yaw_meas - yaw_hat);
+
+        S_yaw = H_yaw*P_D*H_yaw' + R_yaw;
+        K_yaw = P_D*H_yaw'/S_yaw;
+
+        x_hat_D = x_hat_D + K_yaw*innov_yaw;
+
+        x_hat_D(7:9) = wrapToPi_local(x_hat_D(7:9));
+
+        P_D = (eye(nx) - K_yaw*H_yaw)*P_D*(eye(nx) - K_yaw*H_yaw)' + K_yaw*R_yaw*K_yaw';
+        P_D = 0.5*(P_D + P_D');
+
+    end
+end
+
 %% Atualização do tempo
 
 t_prev_D = t_now;
@@ -380,5 +437,11 @@ D = pos_ned(3);
 altitude = -D;
 
 pos_out = [N; E; altitude];
+
+end
+% para o magnetometro
+function ang = wrapToPi_local(ang)
+
+ang = mod(ang + pi, 2*pi) - pi;
 
 end

@@ -21,13 +21,25 @@
 %       Mesmo arquivo usado em ambos os modelos Simulink.
 
 %clear; clc;
-
+fprintf("\n -------------- init INICIALIZAR.m --------------\n");
 %% ========== Paths ==========
-rootDir = fileparts(mfilename('fullpath'));
 addpath(fullfile(rootDir, 'modelos', 'Não Linear'));  % sfunction_piper, aerodynamics, dyn_rigidbody, etc.
-addpath(fullfile(rootDir, 'guiagem'));                 % plot3d_voo, etc.
+%% XPlane Connection
+addpath(fullfile(rootDir, 'xplane','Xplane_Interface','interface')); % função realizam a conexão
+addpath(fullfile(rootDir, 'xplane','XPlaneConnect-master','MATLAB'));
+%% Flight Dynamics - sfunction_piper, aerodynamics, dyn_rigidbody, etc.
+addpath(fullfile(rootDir, 'modelos', 'Não Linear'));
+%% navigation block
 addpath(fullfile(rootDir, 'navigation'));                 % navigation block
-addpath(fullfile(rootDir, 'xplane','xplane_Interface','interface')); % função realizam a conexão
+addpath(fullfile(rootDir, 'navigation'));
+addpath(fullfile(rootDir, 'navigation', 'sensors'));
+addpath(fullfile(rootDir, 'navigation', 'sensors','ICM20689'));
+addpath(fullfile(rootDir, 'navigation', 'sensors','NEOM8'));
+addpath(fullfile(rootDir, 'navigation', 'sensors','IST8310'));
+addpath(fullfile(rootDir, 'navigation', 'FK'));
+addpath(fullfile(rootDir, 'navigation', 'DBN'));
+%% Plots
+addpath(fullfile(rootDir, 'plots'));
 %% ========== Parametros da Aeronave ==========
 % Carrega par_aero, par_prop, par_gen
 load('Sato_longitudinal_Piper_1_6.mat');
@@ -179,3 +191,4 @@ disp(['  VT_eq:     ' num2str(norm(Xe(1:3))) ' m/s']);
 disp(['  Alt_eq:    ' num2str(-Xe(12)) ' m']);
 fprintf('\n  Para GUIAGEM:  open(''guiagem/NL_guidance.slx''), simular, depois plot3d_voo\n');
 fprintf('  Para CONTROLE: open(''controle/Nao Linear/modeloNL1.slx''), depois simular\n');
+fprintf("\n -------------- end INICIALIZAR.m --------------\n")

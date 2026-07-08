@@ -34,9 +34,9 @@ function xplane_sensors = ins_read_xplane(~)
     if isempty(GlobalSocket)
         try
             GlobalSocket = openUDP('127.0.0.1', 49009);
-            disp('read_xplane: Conexao X-Plane aberta.');
+            disp('ins_read_xplane: Conexao X-Plane aberta.');
         catch ME
-            disp(['read_xplane: Falha ao conectar - ' ME.message]);
+            disp(['ins_read_xplane: Falha ao conectar - ' ME.message]);
             return;
         end
     end
