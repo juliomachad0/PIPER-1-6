@@ -32,7 +32,7 @@ function ins_initial_state_xplane()
         y_agl = lla(4); %
         ground_msl = elev_msl - y_agl;
         target_msl = ground_msl + WPs(1,3); % final height = WPs(1,3) above ground
-        sendPOSI([lla(1), lla(2), target_msl, -7, 0, psi0, 0], 0, GlobalSocket);
+        sendPOSI([lla(1), lla(2), target_msl, 0, -0.121684, psi0, 0], 0, GlobalSocket);
         pause(0.2);% anterior pause(0.5);
         abs_V0 = WPs(1,4);
         fprintf("Velocidade absoluta inicial: %.2f [m/s] n\",abs_V0);
