@@ -1,5 +1,5 @@
 function [euler_out, vel_out, pos_out, acc_n_out, xhat_out] = EKF_DI_EM_solver( ...
-    acc_b_in, gyro_b_in, pos_meas_in, vel_meas_in, reset, sample_valid, t_now, EKF_DI_params)
+    acc_b_in, gyro_b_in, pos_meas_in, vel_meas_in, eul_meas_in, reset, sample_valid, t_now, EKF_DI_params)
 
 persistent x_hat_DEM
 persistent P_DEM
@@ -7,6 +7,7 @@ persistent t_prev_DEM
 persistent initialized_DEM
 persistent last_reset_token_DEM
 persistent next_gps_time_DEM
+persistent next_mag_time_DEM
 persistent h0_meas_DEM
 
 nx = 21;
@@ -51,6 +52,12 @@ if reset || ~initialized_DEM || new_params_loaded
 
     next_gps_time_DEM = t_now + EKF_DI_params.gps_period;
 
+    if isfield(EKF_DI_params, 'mag_period')
+        next_mag_time_DEM = t_now + EKF_DI_params.mag_period;
+    else
+        next_mag_time_DEM = t_now + 0.02;
+    end
+
     % pos_meas_in = [N; E; h]
     h0_meas_DEM = pos_meas_in(3);
 
@@ -90,6 +97,12 @@ Qw = EKF_DI_params.Qw;
 R_pos = EKF_DI_params.R_pos;
 R_vel = EKF_DI_params.R_vel;
 lambda_y = EKF_DI_params.lambda_y;
+
+if isfield(EKF_DI_params, 'R_yaw')
+    R_yaw = EKF_DI_params.R_yaw;
+else
+    R_yaw = deg2rad(2.0)^2;
+end
 
 beta_y = exp(-lambda_y*dt);
 
@@ -240,6 +253,52 @@ if do_gps_update
 
 end
 
+%% Atualização de yaw pelo magnetômetro
+
+do_mag_update = false;
+
+if t_now >= next_mag_time_DEM
+    do_mag_update = true;
+
+    if isfield(EKF_DI_params, 'mag_period')
+        mag_period = EKF_DI_params.mag_period;
+    else
+        mag_period = 0.02;
+    end
+
+    while next_mag_time_DEM <= t_now
+        next_mag_time_DEM = next_mag_time_DEM + mag_period;
+    end
+end
+
+if do_mag_update
+
+    % eul_meas_in = [roll; pitch; yaw]
+    % Apenas yaw é usado na correção.
+    yaw_meas = eul_meas_in(3);
+
+    if isfinite(yaw_meas)
+
+        H_yaw = zeros(1,nx);
+        H_yaw(9) = 1;
+
+        yaw_hat = x_hat_DEM(9);
+
+        innov_yaw = wrapToPi_local(yaw_meas - yaw_hat);
+
+        S_yaw = H_yaw*P_DEM*H_yaw' + R_yaw;
+        K_yaw = P_DEM*H_yaw'/S_yaw;
+
+        x_hat_DEM = x_hat_DEM + K_yaw*innov_yaw;
+
+        x_hat_DEM(7:9) = wrapToPi_local(x_hat_DEM(7:9));
+
+        P_DEM = (eye(nx) - K_yaw*H_yaw)*P_DEM*(eye(nx) - K_yaw*H_yaw)' + K_yaw*R_yaw*K_yaw';
+        P_DEM = 0.5*(P_DEM + P_DEM');
+
+    end
+end
+
 %% Atualização do tempo
 
 t_prev_DEM = t_now;
@@ -259,6 +318,7 @@ end
 %-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 %% HELPERS
 %-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 function R = Rb2n_321(eta)
 
 phi = eta(1);
@@ -371,6 +431,7 @@ Ttheta = [ ...
 Tpsi = zeros(3);
 
 end
+
 function pos_out = ekf_pos_output(pos_ned)
 
 N = pos_ned(1);
@@ -380,5 +441,11 @@ D = pos_ned(3);
 altitude = -D;
 
 pos_out = [N; E; altitude];
+
+end
+
+function ang = wrapToPi_local(ang)
+
+ang = mod(ang + pi, 2*pi) - pi;
 
 end
