@@ -8,4 +8,5 @@
 % Plotar os 3 em um só - comparação
 evalin('base', 'plot_compare_all');
 evalin('base', 'plot_compare_all3');
-
+evalin('base', 'plot_compare_all4');
+evalin('base', 'plot_compare_all5');
