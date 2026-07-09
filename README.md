@@ -10,7 +10,7 @@ O projeto reúne modelos matemáticos não lineares, modelos Simulink, scripts M
 
 O repositório está organizado em módulos independentes, mas integrados pelo script principal de inicialização. A estrutura atual contém aproximadamente:
 
-- **103 arquivos listados**;
+- **103 arquivos listados**; (para atualizar números: [Geração automática de relatório](#geração-automática-de-relatório)).
 - **77 arquivos `.m`**;
 - **9 arquivos `.md`**;
 - modelos Simulink `.slx`;
@@ -22,7 +22,18 @@ O fluxo típico de uso é:
 
 1. configurar o ambiente MATLAB;
 2. executar o script de inicialização;
+    
+    inicializar_UI.m no root. Esse arquivo permite configurar a telemetria e intervalo sem 
+    correção da medida. 
+    
+    plots podem ser configurados no aquirvo plots/init_plots e também um a um no inicio, definindo
+    quais resultados plotar, cores, intervalos, etc. 
 3. abrir ou executar o modelo Simulink desejado;
+    
+    Nota sobre o ponto 3: Para simulações SIL com X-Plane, 
+rodar com o modelo NL_guidance.slx fechado. 
+Com o modelo aberto, a interface gráfica do Simulink pode atrasar a 
+execução real e degradar a trajetória.
 4. configurar waypoints, sensores ou filtros;
 5. executar a simulação;
 6. visualizar resultados por meio dos scripts de plotagem;
@@ -52,8 +63,6 @@ PIPER-1-6/
 ├── relatorio_repositorio.pdf
 └── README.md
 ```
-
-> Observação: `gerar_relatorio_repositorio.py` e `relatorio_repositorio.pdf` correspondem ao mecanismo de documentação automática do projeto. Caso o relatório ainda não tenha sido gerado em uma cópia local do repositório, execute o script descrito na seção [Geração automática de relatório](#geração-automática-de-relatório).
 
 ---
 
@@ -482,14 +491,17 @@ scr_waypoints
 open('guiagem/NL_guidance.slx')
 ```
 
-### Gerar relatório do repositório
+## Gerar relatório do repositório
 
 ```bash
+pip install reportlab
 python gerar_relatorio_repositorio.py
 ```
 
 ---
 
-## Status
-
 Este README foi atualizado com base no relatório automático `relatorio_repositorio.pdf`, incluindo a documentação do script `gerar_relatorio_repositorio.py` e do fluxo de geração do relatório do repositório.
+
+Esse gerador pode ser utilizado como input para LLMs, contribuindo para dar contexto ao desenvolvimento e também para
+atualizar informações (por exemplo a contagem de arquivos no inicio) ou ter visão geral. É possível, no
+main do script, selecionar quais pastas do repositório incluir ou não no relatório.
