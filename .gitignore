@@ -29,7 +29,8 @@ Thumbs.db
 !/*/
 !/.gitignore
 !/inicializar_UI.m
-
+!/gerar_relatorio_repositorio.py
+!/relatorio_repositorio.pdf
 # Pastas ignoradas
 DH/
 teste/
