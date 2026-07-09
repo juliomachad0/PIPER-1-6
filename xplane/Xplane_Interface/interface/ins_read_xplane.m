@@ -26,7 +26,7 @@ function xplane_sensors = ins_read_xplane(~)
 
     persistent xN0 xE0 initialized;
 
-    xplane_sensors = zeros(1, 18);
+    xplane_sensors = zeros(1, 17);
 
     %% CONEXAO COM XPLANE
     if isempty(GlobalSocket)
