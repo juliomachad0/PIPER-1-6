@@ -48,4 +48,5 @@ gui_waypoints; % initiate UI to choose waypoints.
 %   0  | 500
 % altitude constante a 100 m
 % velocidade constante a 15 m/s
-%
+%% plots
+% CONFIGURE O QUE PLOTAR EM plots/init_plots.m
