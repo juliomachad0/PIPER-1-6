@@ -19,6 +19,7 @@ function xplane_sensors = ins_read_xplane(~)
 %   sensors(15) = vE    - velocidade Leste (m/s)
 %   sensors(16) = vD    - velocidade Down (m/s)
 %   sensors(17) = magnetic_variation - variacao magnetica local (rad)
+%   sensors(18) = t_xplane - tempo de execução do X-Plane (s)-Total time the sim has been up
 
     global GlobalSocket;
     import XPlaneConnect.*;
@@ -61,7 +62,8 @@ function xplane_sensors = ins_read_xplane(~)
             'sim/flightmodel/position/local_vx',            % 14: local_vx = East
             'sim/flightmodel/position/local_vy',            % 15: local_vy = Up
             'sim/flightmodel/position/local_vz',            % 16: local_vz = South
-            'sim/flightmodel/position/magnetic_variation'   % 17: magnetic variation (deg)
+            'sim/flightmodel/position/magnetic_variation',  % 17: magnetic variation (deg)
+            'sim/time/total_running_time_sec',              % 18: Total time the sim has been up
         };
 
         result = double(getDREFs(drefs, GlobalSocket));
@@ -144,12 +146,14 @@ function xplane_sensors = ins_read_xplane(~)
 
         %% Nova variavel - indice 17
         magnetic_variation = result(17) * d2r;
-
+        
+        %% Tempo da simulação
+        t_xplane = result(18);
         %% Vetor de saida
         xplane_sensors = [ ...
             VT, theta, q, h, phi, p, psi, r, ...
             xN, xE, abx, aby, abz, vN, vE, vD, ...
-            magnetic_variation];
+            magnetic_variation, t_xplane];
 
         % fprintf(['VT: %.3f, theta: %.3f, q: %.3f, h: %.3f, phi: %.3f, p: %.3f, psi: %.3f, r: %.3f, ' ...
         %          'xN: %.3f, xE: %.3f, abx: %.3f, aby: %.3f, abz: %.3f, vN: %.3f, vE: %.3f, vD: %.3f, ' ...
