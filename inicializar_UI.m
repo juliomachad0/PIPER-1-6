@@ -30,7 +30,7 @@ assignin('base','range_time_without_correction',range_time_without_correction);
 
 activate_telemetry = true;
 consider_FK_in_telemetry = false;
-ins_telemetry_time_interval = 1;
+ins_telemetry_time_interval = 3.0;
 
 assignin('base','activate_telemetry', activate_telemetry);
 assignin('base','consider_FK_in_telemetry', consider_FK_in_telemetry);
