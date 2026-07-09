@@ -23,7 +23,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 # CONFIGURAÇÕES PRINCIPAIS
 # ============================================================
 
-NOME_PDF_FINAL = "Relatorio_de_conteudo_do_repositorio.pdf"
+NOME_PDF_FINAL = "relatorio_repositorio.pdf"
 
 # Pasta onde o PDF final sera salvo.
 # Como solicitado, o relatorio sera salvo em docs/relatorio_repositorio.pdf.
@@ -72,7 +72,6 @@ PASTAS_IGNORADAS = {
     ".env",
     "build",
     "dist",
-    "slprj",
 }
 
 # Arquivos ignorados.
