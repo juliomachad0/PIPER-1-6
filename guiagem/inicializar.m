@@ -38,6 +38,14 @@ addpath(fullfile(rootDir, 'navigation', 'sensors','NEOM8'));
 addpath(fullfile(rootDir, 'navigation', 'sensors','IST8310'));
 addpath(fullfile(rootDir, 'navigation', 'FK'));
 addpath(fullfile(rootDir, 'navigation', 'DBN'));
+%% HIL block
+addpath(fullfile(rootDir, 'HIL'));
+addpath(fullfile(rootDir, 'HIL', 'HIL_Matlab_XPlane_Microcontroller'));
+addpath(fullfile(rootDir, 'HIL', 'Arduino'));
+addpath(fullfile(rootDir, 'HIL', 'Arduino', 'HIL_simulink'));
+addpath(fullfile(rootDir, 'HIL', 'Arduino', 'guiagem embarcada'));
+addpath(fullfile(rootDir, 'HIL', 'Arduino', 'guiagem embarcada','tools'));
+
 %% Plots
 addpath(fullfile(rootDir, 'plots'));
 %% ========== Parametros da Aeronave ==========
