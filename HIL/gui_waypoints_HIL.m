@@ -9,18 +9,22 @@ function gui_waypoints_HIL()
 %
 % Pre-req: Mega gravado com arduino_guiagem_controle.ino, COM3 livre.
 
-    %% ========== Inicializacao ==========
-    rootDir = fileparts(fileparts(fileparts(mfilename('fullpath'))));  % raiz do projeto
+    % %% ========== Inicializacao ==========
+    % rootDir = fileparts(fileparts(fileparts(mfilename('fullpath'))));  % raiz do projeto
     hilDir  = fileparts(mfilename('fullpath'));                        % .../guiagem embarcada
+    % oldDir = pwd;
+    % cd(rootDir);
+    % evalin('base', 'inicializar');     % limpa COM3 + carrega ganhos
+    % cd(oldDir);
+    % addpath(hilDir);
+    % addpath(fullfile(hilDir, 'tools'));
 
-    oldDir = pwd;
-    cd(rootDir);
-    evalin('base', 'inicializar');     % limpa COM3 + carrega ganhos
-    cd(oldDir);
-
-    addpath(hilDir);
-    addpath(fullfile(hilDir, 'tools'));
-
+    %% ESCOLHA DO MODELO
+    mdl = 'modelo_HIL_guiagem';
+    modelPath = fullfile(hilDir, 'Arduino', 'guiagem embarcada', [mdl '.slx']);
+    % mdl = 'Guidance_HIL_XPlane';
+    % modelPath = fullfile(hilDir, 'HIL_Matlab_XPlane_Microcontroller', [mdl '.slx']);
+    %% PARAMETROS DO VEICULO
     par_aero  = evalin('base', 'par_aero');
     par_prop  = evalin('base', 'par_prop');
     par_gen   = evalin('base', 'par_gen');
@@ -277,8 +281,7 @@ function gui_waypoints_HIL()
             catch
             end
 
-            mdl = 'modelo_HIL_guiagem';
-            modelPath = fullfile(hilDir, [mdl '.slx']);
+            % Roda modelo HIL
             if ~exist(modelPath,'file')
                 error('Modelo nao encontrado: %s. Rode criar_modelo_HIL_guiagem primeiro.', modelPath);
             end

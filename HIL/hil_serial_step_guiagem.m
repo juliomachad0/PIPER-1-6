@@ -17,10 +17,16 @@ MAX_FAILS = 5;
 
 if isempty(sp) || ~isvalid(sp)
     try
-        sp = serialport('COM3', 115200, 'Timeout', 1);
+        try
+            hil_port_guiagem_ref = evalin('base', 'HIL_porta_controlador');
+        catch
+            error('hil_serial_step_guiagem:noPortVar', ...
+                'Variavel HIL_porta_controlador nao encontrada no base workspace.');
+        end
+        sp = serialport(hil_port_guiagem_ref, 115200, 'Timeout', 1);
     catch ME
         error('hil_serial_step_guiagem:noPort', ...
-            'Arduino nao encontrado em COM3 (%s).', ME.message);
+            'Microcontrolador nao encontrado em %s (%s).', hil_port_guiagem_ref, ME.message);
     end
     pause(3);           % DTR reset
     flush(sp);
@@ -82,12 +88,12 @@ end
 
 if ~ok
     fail_count = fail_count + 1;
-    warning('hil_serial_step_guiagem: sem resposta do Arduino (%d/%d)', fail_count, MAX_FAILS);
+    warning('hil_serial_step_guiagem: sem resposta do Microcontrolador (%d/%d)', fail_count, MAX_FAILS);
     if fail_count >= MAX_FAILS
         try, delete(sp); catch, end
         sp = [];
         error('hil_serial_step_guiagem:lostLink', ...
-            'Arduino perdeu conexao (%d passos sem resposta). Abortando.', MAX_FAILS);
+            'Microcontrolador perdeu conexao (%d passos sem resposta). Abortando.', MAX_FAILS);
     end
     U = [0.491387; 0.015456; 0; 0];
 else
