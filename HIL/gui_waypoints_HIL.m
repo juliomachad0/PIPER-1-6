@@ -20,10 +20,10 @@ function gui_waypoints_HIL()
     % addpath(fullfile(hilDir, 'tools'));
 
     %% ESCOLHA DO MODELO
-    mdl = 'modelo_HIL_guiagem';
-    modelPath = fullfile(hilDir, 'Arduino', 'guiagem embarcada', [mdl '.slx']);
-    % mdl = 'Guidance_HIL_XPlane';
-    % modelPath = fullfile(hilDir, 'HIL_Matlab_XPlane_Microcontroller', [mdl '.slx']);
+    % mdl = 'modelo_HIL_guiagem';
+    % modelPath = fullfile(hilDir, 'Arduino', 'guiagem embarcada', [mdl '.slx']);
+    mdl = 'Guidance_HIL_XPlane';
+    modelPath = fullfile(hilDir, 'HIL_Matlab_XPlane_Microcontroller', [mdl '.slx']);
     %% PARAMETROS DO VEICULO
     par_aero  = evalin('base', 'par_aero');
     par_prop  = evalin('base', 'par_prop');
