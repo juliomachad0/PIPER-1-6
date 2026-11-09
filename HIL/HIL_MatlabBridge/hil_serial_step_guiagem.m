@@ -11,12 +11,9 @@ function U = hil_serial_step_guiagem(sensors15)
 %
 % sensors15 inclui xN em s(13) e xE em s(14) (antes zerados).
 
-persistent sp fail_count last_wp R_stop pause_x_plane_simul
-global GlobalSocket;
-import XPlaneConnect.*;
-
+persistent sp fail_count last_wp R_stop last_wp_reached
 if isempty(fail_count), fail_count = 0; end
-if isempty(pause_x_plane_simul), pause_x_plane_simul = false; end
+if isempty(last_wp_reached), last_wp_reached = false; end
 MAX_FAILS = 5;
 
 if isempty(sp) || ~isvalid(sp)
@@ -61,35 +58,18 @@ if isempty(sp) || ~isvalid(sp)
     fprintf('hil_serial_step_guiagem: %d waypoints enviados ao MCU.\n', N);
     last_wp = WPs_local(end, 1:2);   % [N, E] do ultimo WP
     R_stop  = 80;                     % mesmo R_accept do firmware
-    pause_x_plane_simul = false;
+    last_wp_reached = false;
 end
 
-% --- Se o ultimo WP ja foi alcancado antes, mantem pausado e sai imediatamente ---
-if pause_x_plane_simul
-    U = [0.491387; 0.015456; 0; 0];
-    return;
-end
-
-% --- Checa se chegou na zona do ultimo WP (executa apenas 1 vez) ---
+% --- Informa apenas 1 vez quando o ultimo WP e alcancado, mas continua voando ---
 xN_now = sensors15(13);
 xE_now = sensors15(14);
-if ~isempty(last_wp)
+if ~isempty(last_wp) && ~last_wp_reached
     dN = last_wp(1) - xN_now;
     dE = last_wp(2) - xE_now;
     if sqrt(dN*dN + dE*dE) <= R_stop
-        pause_x_plane_simul = true;
-        fprintf('hil_serial_step_guiagem: ultimo WP alcancado, pausando XPlane simulation.\n');
-        try
-            if isempty(GlobalSocket)
-                GlobalSocket = openUDP('127.0.0.1', 49009);
-            end
-            pauseSim(1, GlobalSocket);
-            fprintf('Xplane: Simulacao Pausada.\n');
-        catch ME
-            disp(['pausar xplane: falha ao conectar - ' ME.message]);
-        end
-        U = [0.491387; 0.015456; 0; 0];
-        return;
+        last_wp_reached = true;
+        fprintf('hil_serial_step_guiagem: ultimo WP alcancado (continuando simulacao ate o StopTime).\n');
     end
 end
 
