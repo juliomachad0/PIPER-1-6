@@ -10,6 +10,9 @@ function gui_waypoints_HIL()
 % Pre-req: Mega gravado com arduino_guiagem_controle.ino, COM3 livre.
 
     % %% ========== Inicializacao ==========
+    % comunicação xplane
+    global GlobalSocket;
+    import XPlaneConnect.*;
     % rootDir = fileparts(fileparts(fileparts(mfilename('fullpath'))));  % raiz do projeto
     hilDir  = fileparts(mfilename('fullpath'));                        % .../guiagem embarcada
     % oldDir = pwd;
@@ -18,12 +21,8 @@ function gui_waypoints_HIL()
     % cd(oldDir);
     % addpath(hilDir);
     % addpath(fullfile(hilDir, 'tools'));
-
-    %% ESCOLHA DO MODELO
-    % mdl = 'modelo_HIL_guiagem';
-    % modelPath = fullfile(hilDir, 'Arduino', 'guiagem embarcada', [mdl '.slx']);
     mdl = 'Guidance_HIL_XPlane';
-    modelPath = fullfile(hilDir, 'HIL_Matlab_XPlane_Microcontroller', [mdl '.slx']);
+    modelPath = fullfile(hilDir, [mdl '.slx']);
     %% PARAMETROS DO VEICULO
     par_aero  = evalin('base', 'par_aero');
     par_prop  = evalin('base', 'par_prop');
@@ -34,7 +33,14 @@ function gui_waypoints_HIL()
     h_eq      = evalin('base', 'h_eq');
 
     %% ========== Dados ==========
-    wp_data = [0, 0, h_eq, 15];
+    wp_data = [
+      0,   0, h_eq, 15;
+    300,   0, h_eq, 15;
+    500, 100, h_eq, 15;
+    500, 400, h_eq, 15;
+    300, 500, h_eq, 15;
+      0, 500, h_eq, 15;
+    ];
 
     %% ========== Figura ==========
     fig = uifigure('Name', 'Waypoints HIL - Piper J-3 Cub 1/6 (Arduino Mega)', ...
@@ -88,7 +94,7 @@ function gui_waypoints_HIL()
         'Text', 'Tempo de simulacao:', 'FontSize', 11);
     fldStopTime = uieditfield(fig, 'numeric', ...
         'Position', [panelX+170 yPos 80 22], ...
-        'Value', 200, 'Limits', [10 5000]);
+        'Value', 60, 'Limits', [10 5000]);
     uilabel(fig, 'Position', [panelX+255 yPos 30 22], 'Text', 's');
 
     uibutton(fig, 'Position', [panelX 100 panelW 50], ...
@@ -292,8 +298,25 @@ function gui_waypoints_HIL()
             assignin('base','out', out);
             assignin('base','WPs', wp_data);
             assignin('base','R_accept', 80);
-
-            evalin('base','plot3d_voo');
+            %% PAUSANDO SIMULAÇÃO NO XPLANE
+            if isempty(GlobalSocket)
+                try
+                    GlobalSocket = openUDP('127.0.0.1', 49009);
+                    pauseSim(1, GlobalSocket);
+                    fprintf("Xplane: Simulação Pausada")
+                catch ME
+                    disp(['pausar xplane: falha ao conectar - ' ME.message]);
+                    return
+                end
+            else
+                pauseSim(1, GlobalSocket);
+                fprintf("Xplane: Simulação Pausada")
+            end
+            pauseSim(1, GlobalSocket);
+            %% Plotar resultados
+            close all;
+            % chamar o função de plot
+            evalin('base', 'init_plots');
 
             lblStatus.Text = 'HIL concluido com sucesso!';
             lblStatus.FontColor = [0 0.5 0];

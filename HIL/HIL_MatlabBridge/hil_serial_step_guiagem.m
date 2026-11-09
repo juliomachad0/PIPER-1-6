@@ -4,24 +4,28 @@ function U = hil_serial_step_guiagem(sensors15)
 % upload da matriz WPs do base workspace via mensagem WP_UPLOAD.
 %
 % Protocolo:
-%   PC -> MEGA  WP_UPLOAD : [0xBB 0x66] uint8 N + N*(4 floats LE)
-%   MEGA -> PC  WP_ACK    : [0x66 0xBB] uint8 N
-%   PC -> MEGA  SENSORS   : [0xAA 0x55] + 15 floats LE
-%   MEGA -> PC  ACTUATORS : [0x55 0xAA] + 4 floats LE
+%   PC -> MCU  WP_UPLOAD : [0xBB 0x66] uint8 N + N*(4 floats LE)
+%   MCU -> PC  WP_ACK    : [0x66 0xBB] uint8 N
+%   PC -> MCU  SENSORS   : [0xAA 0x55] + 15 floats LE
+%   MCU -> PC  ACTUATORS : [0x55 0xAA] + 4 floats LE
 %
 % sensors15 inclui xN em s(13) e xE em s(14) (antes zerados).
 
-persistent sp fail_count last_wp R_stop
+persistent sp fail_count last_wp R_stop pause_x_plane_simul
+global GlobalSocket;
+import XPlaneConnect.*;
+
 if isempty(fail_count), fail_count = 0; end
+if isempty(pause_x_plane_simul), pause_x_plane_simul = false; end
 MAX_FAILS = 5;
 
 if isempty(sp) || ~isvalid(sp)
     try
         try
-            hil_port_guiagem_ref = evalin('base', 'HIL_porta_controlador');
+            hil_port_guiagem_ref = evalin('base', 'HIL_MCUport');
         catch
             error('hil_serial_step_guiagem:noPortVar', ...
-                'Variavel HIL_porta_controlador nao encontrada no base workspace.');
+                'Variavel HIL_MCUport nao encontrada no base workspace.');
         end
         sp = serialport(hil_port_guiagem_ref, 115200, 'Timeout', 1);
     catch ME
@@ -54,20 +58,36 @@ if isempty(sp) || ~isvalid(sp)
         error('hil_serial_step_guiagem:wpAck', ...
             'Falha no ACK do upload de WPs (recebido: %s).', mat2str(ack));
     end
-    fprintf('hil_serial_step_guiagem: %d waypoints enviados ao Mega.\n', N);
+    fprintf('hil_serial_step_guiagem: %d waypoints enviados ao MCU.\n', N);
     last_wp = WPs_local(end, 1:2);   % [N, E] do ultimo WP
     R_stop  = 80;                     % mesmo R_accept do firmware
+    pause_x_plane_simul = false;
 end
 
-% --- Checa se chegou na zona do ultimo WP -> para a sim ---
+% --- Se o ultimo WP ja foi alcancado antes, mantem pausado e sai imediatamente ---
+if pause_x_plane_simul
+    U = [0.491387; 0.015456; 0; 0];
+    return;
+end
+
+% --- Checa se chegou na zona do ultimo WP (executa apenas 1 vez) ---
 xN_now = sensors15(13);
 xE_now = sensors15(14);
 if ~isempty(last_wp)
     dN = last_wp(1) - xN_now;
     dE = last_wp(2) - xE_now;
     if sqrt(dN*dN + dE*dE) <= R_stop
-        fprintf('hil_serial_step_guiagem: ultimo WP alcancado, parando sim.\n');
-        try, set_param(bdroot, 'SimulationCommand', 'stop'); catch, end
+        pause_x_plane_simul = true;
+        fprintf('hil_serial_step_guiagem: ultimo WP alcancado, pausando XPlane simulation.\n');
+        try
+            if isempty(GlobalSocket)
+                GlobalSocket = openUDP('127.0.0.1', 49009);
+            end
+            pauseSim(1, GlobalSocket);
+            fprintf('Xplane: Simulacao Pausada.\n');
+        catch ME
+            disp(['pausar xplane: falha ao conectar - ' ME.message]);
+        end
         U = [0.491387; 0.015456; 0; 0];
         return;
     end

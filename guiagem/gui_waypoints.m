@@ -41,7 +41,14 @@ function gui_waypoints()
 
     %% ========== Dados dos Waypoints ==========
     % WP1 fixo na posição inicial (0, 0, h_eq, 15)
-    wp_data = [0, 0, h_eq, 15];  % matriz Nx4
+    wp_data = [
+      0,   0, h_eq, 15;
+    300,   0, h_eq, 15;
+    500, 100, h_eq, 15;
+    500, 400, h_eq, 15;
+    300, 500, h_eq, 15;
+      0, 500, h_eq, 15;
+    ];
 
     %% ========== Criar Figura ==========
     fig = uifigure('Name', 'Waypoints - Piper J-3 Cub 1/6', ...

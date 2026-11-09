@@ -30,26 +30,23 @@ assignin('base','range_time_without_correction',range_time_without_correction);
 
 activate_telemetry = true;
 consider_FK_in_telemetry = false;
-ins_telemetry_time_interval = 3.0;
+ins_telemetry_time_interval = 5.0;
 
 assignin('base','activate_telemetry', activate_telemetry);
 assignin('base','consider_FK_in_telemetry', consider_FK_in_telemetry);
 assignin('base','ins_telemetry_time_interval', ins_telemetry_time_interval);
 %% HIL
-HIL_porta_controlador = 'COM9';
-assignin('base','HIL_porta_controlador', HIL_porta_controlador);
+HIL_MCUport = 'COM9';
+assignin('base','HIL_MCUport', HIL_MCUport);
 %% Initiating simulation
-inicializar; % Start parameters, models, functions and XPlane connection
-gui_waypoints; % initiate UI to choose waypoints. 
-%% PONTOS UTILIZADOS NO TESTE
-% XN   | YE
-%   0  | 0
-% 300  | 0
-% 500  | 100
-% 500  | 400
-% 300  | 500
-%   0  | 500
-% altitude constante a 100 m
-% velocidade constante a 15 m/s
+config; % Start parameters, models, functions and XPlane connection
+%% initiate UI to choose waypoints. SIMULACAO PRINCIPAL
+% gui_waypoints;
+% ------------------------------------------
+
+%% initiate UI to choose waypoints. SIMULACAO HIL MATLAB Bridge
+gui_waypoints_HIL_MB;
+% ------------------------------------------
+
 %% plots
 % CONFIGURE O QUE PLOTAR EM plots/init_plots.m
