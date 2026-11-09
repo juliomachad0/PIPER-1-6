@@ -48,6 +48,6 @@ catch ME
 end
 
 %% ========== Parametros do X-Plane ==========
-Ts_xplane = 0.05;  % Sample time: 20 Hz (adjust if necessary)
+Ts_xplane = 0.01;  % Sample time: 20 Hz (adjust if necessary)
 assignin('base', 'Ts_xplane', Ts_xplane);
 fprintf('\n-----------------------------------------------------------\n')
