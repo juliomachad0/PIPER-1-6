@@ -20,11 +20,12 @@ if isempty(sp) || ~isvalid(sp)
     try
         try
             hil_port_guiagem_ref = evalin('base', 'HIL_MCUport');
+            hil_baud_guiagem_ref = evalin('base', 'HIL_MCUbaud');
         catch
             error('hil_serial_step_guiagem:noPortVar', ...
-                'Variavel HIL_MCUport nao encontrada no base workspace.');
+                'HIL_MCUport or HIL_MCUbaud variables not found in base workspace.');
         end
-        sp = serialport(hil_port_guiagem_ref, 115200, 'Timeout', 1);
+        sp = serialport(hil_port_guiagem_ref, hil_baud_guiagem_ref, 'Timeout', 1);
     catch ME
         error('hil_serial_step_guiagem:noPort', ...
             'Microcontrolador nao encontrado em %s (%s).', hil_port_guiagem_ref, ME.message);
@@ -75,8 +76,8 @@ end
 
 ok = false;
 try
-    write(sp, uint8([170 85]), 'uint8');
-    write(sp, single(sensors15(:)'), 'single');
+    pkt = [uint8([170 85]), typecast(single(sensors15(:)'), 'uint8')];
+    write(sp, pkt, 'uint8');
     buf = read(sp, 18, 'uint8');
     if numel(buf) == 18 && buf(1) == 85 && buf(2) == 170
         U = double(typecast(uint8(buf(3:18)), 'single')');

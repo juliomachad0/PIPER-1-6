@@ -38,6 +38,8 @@ assignin('base','ins_telemetry_time_interval', ins_telemetry_time_interval);
 %% HIL
 HIL_MCUport = 'COM9';
 assignin('base','HIL_MCUport', HIL_MCUport);
+HIL_MCUbaud = 500000;
+assignin('base','HIL_MCUbaud', HIL_MCUbaud);
 %% Initiating simulation
 config; % Start parameters, models, functions and XPlane connection
 %% initiate UI to choose waypoints. SIMULACAO PRINCIPAL
