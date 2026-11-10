@@ -189,6 +189,25 @@ INPUTS    = Ue';   % [delta_T, delta_e, delta_a, delta_r]
 TrimInput = Ue';   % Alias (alguns blocos usam TrimInput)
 Kp_sas    = Kp;    % Alias do SAS de rolamento (Kp = 0.119)
 
+%% HIL
+HIL_MCUport = 'COM9';
+assignin('base','HIL_MCUport', HIL_MCUport);
+HIL_MCUbaud = 500000;
+assignin('base','HIL_MCUbaud', HIL_MCUbaud);
+%% frequency of the HIL loop (Hz) - Simulink
+HIL_loop_freq = 100; % frequency of the HIL loop (Hz) - Simulink
+fprintf('  HIL loop frequency: %d Hz\n', HIL_loop_freq);
+%frequency of the HIL loop (Hz) - python conversor 
+mcu_to_xplane_freq = HIL_loop_freq; % frequency to python conversor reads mcu and sends to Xplane
+assignin('base','mcu_to_xplane_freq', mcu_to_xplane_freq);
+xplane_to_mcu_freq = HIL_loop_freq; % frequency to python conversor reads xplane and sends to MCU
+assignin('base','xplane_to_mcu_freq', xplane_to_mcu_freq);
+%% Frequency
+
+%% ========== Parametros do X-Plane ==========
+Ts_xplane = 1 / HIL_loop_freq;  % Sample time: 20 Hz (adjust if necessary)
+assignin('base', 'Ts_xplane', Ts_xplane);
+fprintf('\n-----------------------------------------------------------\n')
 %% ========== Inertial Navigation Block Initialization ===========
 ins_init_block;
 %% ========== Inicia e configura conexão com Xplane ===========

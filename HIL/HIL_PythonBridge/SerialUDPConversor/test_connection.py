@@ -75,6 +75,13 @@ class XPCClient:
             values.append(row[0] if len(row) > 0 else 0.0)
         return values
 
+    def send_ctrl(self, elev: float, ail: float, rud: float, thr: float, gear: float = 0.0, flaps: float = -998.0, ac: int = 0):
+        buf = struct.pack("<4sx6fb", b"CTRL", float(elev), float(ail), float(rud), float(thr), float(gear), float(flaps), int(ac))
+        try:
+            self.sock.sendto(buf, self.dest)
+        except Exception:
+            pass
+
 
 def load_config(config_path: str) -> dict:
     if not os.path.isabs(config_path):
@@ -304,6 +311,7 @@ def test_loop_dry_run(cfg: dict, duration_sec: float = 5.0):
                 buf = s.read(18)
                 if len(buf) == 18 and buf[0] == 85 and buf[1] == 170:
                     thr, ele, ail, rud = struct.unpack("<4f", buf[2:])
+                    xpc.send_ctrl(elev=ele * 2.29199, ail=ail * 2.29199, rud=rud * 2.29199, thr=thr)
                 else:
                     status_str = "SyncErr"
             else:

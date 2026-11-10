@@ -88,6 +88,14 @@ class XPCClient:
         except Exception:
             pass
 
+    def send_ctrl(self, elev: float, ail: float, rud: float, thr: float, gear: float = 0.0, flaps: float = -998.0, ac: int = 0):
+        """Envia comando CTRL do XPlaneConnect (sobrescreve comandos de voo no simulador com garantia de controle)."""
+        buf = struct.pack("<4sx6fb", b"CTRL", float(elev), float(ail), float(rud), float(thr), float(gear), float(flaps), int(ac))
+        try:
+            self.sock.sendto(buf, self.dest)
+        except Exception:
+            pass
+
 
 def update_status(status_file_path: str, running: bool, status: int, message: str, elapsed: float, duration: float):
     data = {
@@ -305,6 +313,19 @@ def run_converter(config_path: str):
 
                         if drefs_to_send:
                             xpc.send_drefs(drefs_to_send)
+
+                        # Enviar tambem via send_ctrl do XPC (garante override dos comandos no simulador)
+                        ctrl_map = {fld.get("name", ""): (float(raw_val) * float(fld.get("scale", 1.0))) for fld, raw_val in zip(fields, raw_floats)}
+                        if "elevator" in ctrl_map and "aileron" in ctrl_map and "throttle" in ctrl_map:
+                            xpc.send_ctrl(
+                                elev=ctrl_map["elevator"],
+                                ail=ctrl_map["aileron"],
+                                rud=ctrl_map.get("rudder", 0.0),
+                                thr=ctrl_map["throttle"],
+                                gear=0.0,
+                                flaps=-998.0
+                            )
+
                         log_writer.writerow(log_row)
 
             # Atualizar status JSON a cada 1 segundo

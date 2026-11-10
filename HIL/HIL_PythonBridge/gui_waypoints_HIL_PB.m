@@ -296,6 +296,12 @@ function gui_waypoints_HIL()
             end
             load_system(modelPath);
 
+            try
+                set_param(mdl, 'EnablePacing', 'on');
+                set_param(mdl, 'PacedSimulationRate', '1.0');
+            catch
+            end
+
             % Salva duracao no workspace e adiciona 2s no StopTime do Simulink (Slide 3)
             HIL_dur = fldStopTime.Value;
             assignin('base', 'HIL_duration', HIL_dur);

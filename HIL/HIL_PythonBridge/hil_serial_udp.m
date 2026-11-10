@@ -79,14 +79,35 @@ function hil_serial_udp(t)
             error('hil_serial_udp:noWPs', 'Variavel WPs nao encontrada no workspace base.');
         end
 
+        try
+            freq_xp2mcu = evalin('base', 'xplane_to_mcu_freq');
+        catch
+            try
+                freq_xp2mcu = evalin('base', 'HIL_loop_freq');
+            catch
+                freq_xp2mcu = 20.0;
+            end
+        end
+
+        try
+            freq_mcu2xp = evalin('base', 'mcu_to_xplane_freq');
+        catch
+            try
+                freq_mcu2xp = evalin('base', 'HIL_loop_freq');
+            catch
+                freq_mcu2xp = 20.0;
+            end
+        end
+
+        try
+            bauderate = evalin('base', 'HIL_MCUbaud');
+        catch
+            bauderate = 115200;
+        end
+
         % C) Upload de Waypoints para o MCU via serial e fechamento imediato da porta
         fprintf('[HIL_PythonBridge] Abrindo porta %s para upload de %d Waypoints...\n', port_mcu, size(WPs_local,1));
         try
-            try
-                bauderate = evalin('base', 'HIL_MCUbaud');
-            catch
-                bauderate = 115200;
-            end
             sp = serialport(port_mcu, bauderate, 'Timeout', 1);
             pause(2.5); % Tempo para reset do DTR inicial
             flush(sp);
@@ -120,14 +141,17 @@ function hil_serial_udp(t)
             error('hil_serial_udp:serialUpload', 'Erro durante upload de WPs na porta %s: %s', port_mcu, ME.message);
         end
 
-        % D) Atualizar arquivo de configuracao .json com porta e duracao
+        % D) Atualizar arquivo de configuracao .json com porta, duracao e frequencias
         try
             if exist(json_config_path, 'file')
                 txt = fileread(json_config_path);
                 cfg_data = jsondecode(txt);
                 cfg_data.config.duration_sec = HIL_dur;
+                cfg_data.config.freq_xplane_to_mcu_hz = freq_xp2mcu;
+                cfg_data.config.freq_mcu_to_xplane_hz = freq_mcu2xp;
                 if isfield(cfg_data.config, 'serial_ports') && ~isempty(cfg_data.config.serial_ports)
                     cfg_data.config.serial_ports(1).name = port_mcu;
+                    cfg_data.config.serial_ports(1).baudrate = bauderate;
                 end
                 if isfield(cfg_data, 'xplane_to_mcu') && ~isempty(cfg_data.xplane_to_mcu)
                     cfg_data.xplane_to_mcu(1).port = port_mcu;
@@ -140,6 +164,8 @@ function hil_serial_udp(t)
                     fwrite(fid, jsonencode(cfg_data, 'PrettyPrint', true));
                     fclose(fid);
                 end
+                fprintf('[HIL_PythonBridge] Config JSON atualizado: Freq XP->MCU = %.1f Hz, MCU->XP = %.1f Hz, Baud = %d\n', ...
+                    freq_xp2mcu, freq_mcu2xp, bauderate);
             end
         catch ME
             fprintf('[HIL_PythonBridge] Aviso ao atualizar config .json: %s\n', ME.message);
@@ -176,6 +202,15 @@ function hil_serial_udp(t)
     %% ====================================================================
     %% 2) EXECUCOES SEGUINTES (MONITORAMENTO DO TEMPO E STATUS DO CONVERSOR)
     %% ====================================================================
+    % Sincronizacao estrita em tempo real (Garante 1s simulacao = 1s relogio real)
+    if ~isempty(t_start_wall)
+        t_wall = toc(t_start_wall);
+        dt_ahead = t - t_wall;
+        if dt_ahead > 0.001
+            pause(dt_ahead);
+        end
+    end
+
     % Checagem periodica a cada 0.5s de simulacao (evita sobrecarga de I/O em disco)
     if isempty(t_last_status_check) || (t - t_last_status_check >= 0.5)
         t_last_status_check = t;

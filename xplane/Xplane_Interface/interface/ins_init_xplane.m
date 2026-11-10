@@ -47,7 +47,3 @@ catch ME
         'ins_init_xplane: Simulação encerrada por falta de conexão.');
 end
 
-%% ========== Parametros do X-Plane ==========
-Ts_xplane = 0.01;  % Sample time: 20 Hz (adjust if necessary)
-assignin('base', 'Ts_xplane', Ts_xplane);
-fprintf('\n-----------------------------------------------------------\n')
