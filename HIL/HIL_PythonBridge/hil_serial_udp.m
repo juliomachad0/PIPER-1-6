@@ -82,7 +82,12 @@ function hil_serial_udp(t)
         % C) Upload de Waypoints para o MCU via serial e fechamento imediato da porta
         fprintf('[HIL_PythonBridge] Abrindo porta %s para upload de %d Waypoints...\n', port_mcu, size(WPs_local,1));
         try
-            sp = serialport(port_mcu, 115200, 'Timeout', 1);
+            try
+                bauderate = evalin('base', 'HIL_MCUbaud');
+            catch
+                bauderate = 115200;
+            end
+            sp = serialport(port_mcu, bauderate, 'Timeout', 1);
             pause(2.5); % Tempo para reset do DTR inicial
             flush(sp);
 
@@ -153,8 +158,8 @@ function hil_serial_udp(t)
         fprintf('[HIL_PythonBridge] Disparando conversor Python em segundo plano...\n');
         system(cmd_run);
 
-        % Aguarda 1s para o Python conectar e despausa simulacao no X-Plane
-        pause(1);
+        % Aguarda 0.8s para o Python conectar e despausa simulacao no X-Plane
+        pause(0.8);
         try
             pauseSim(0, GlobalSocket);
             fprintf('[HIL_PythonBridge] Simulacao no X-Plane despausada! Voo HIL em andamento.\n');

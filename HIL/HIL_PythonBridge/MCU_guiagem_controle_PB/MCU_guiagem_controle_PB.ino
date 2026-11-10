@@ -23,6 +23,9 @@
 #include <string.h>
 #include <math.h>
 
+// ----------------- baudrate -----------------
+static const uint32_t BAUDRATE = 500000;  // 500 kbps (PC <-> MCU)
+
 // ----------------- Parametros base -----------------
 static const float TS         = 0.05f;
 static const float THETA_EQ   = -0.121684f;
@@ -210,7 +213,7 @@ static void send_actuators(const float U[4]) {
 
 // ----------------- Setup/Loop -----------------
 void setup(void) {
-  Serial.begin(115200);
+  Serial.begin(BAUDRATE);
   delay(50);
   pid_init(&pid_vel, TS);
   pid_init(&pid_alt, TS);
