@@ -24,7 +24,7 @@
 #include <math.h>
 
 // ----------------- Parametros base -----------------
-static const float TS         = 0.01f;
+static const float TS         = 0.05f;
 static const float THETA_EQ   = -0.121684f;
 static const float UE_THR     = 0.491387f;
 static const float UE_ELEV    = 0.015456f;
@@ -210,7 +210,7 @@ static void send_actuators(const float U[4]) {
 
 // ----------------- Setup/Loop -----------------
 void setup(void) {
-  Serial.begin(500000);
+  Serial.begin(115200);
   delay(50);
   pid_init(&pid_vel, TS);
   pid_init(&pid_alt, TS);

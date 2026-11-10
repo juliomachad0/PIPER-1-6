@@ -1,0 +1,158 @@
+{
+  "description": "Arquivo de configuracao generico do Conversor Serial <-> UDP (X-Plane)",
+  "config": {
+    "xplane_ip": "127.0.0.1",
+    "xplane_port": 49009,
+    "serial_ports": {
+      "id": "port_mcu",
+      "name": "COM9",
+      "baudrate": 115200,
+      "timeout": 0.05,
+      "dtr": false,
+      "rts": false
+    },
+    "freq_xplane_to_mcu_hz": 20,
+    "freq_mcu_to_xplane_hz": 20,
+    "duration_sec": 80,
+    "status_file": "converter_status.json",
+    "log_file": "converter_u_log.csv"
+  },
+  "xplane_to_mcu": {
+    "port": "COM9",
+    "header_bytes": [
+      170,
+      85
+    ],
+    "fields": [
+      {
+        "name": "p",
+        "dataref": "sim/flightmodel/position/Prad",
+        "scale": 1,
+        "offset_at_start": false
+      },
+      {
+        "name": "q",
+        "dataref": "sim/flightmodel/position/Qrad",
+        "scale": 1,
+        "offset_at_start": false
+      },
+      {
+        "name": "r",
+        "dataref": "sim/flightmodel/position/Rrad",
+        "scale": 1,
+        "offset_at_start": false
+      },
+      {
+        "name": "u",
+        "dataref": "sim/flightmodel/position/true_airspeed",
+        "scale": 1,
+        "offset_at_start": false
+      },
+      {
+        "name": "v",
+        "value": 0
+      },
+      {
+        "name": "w",
+        "value": -1.8343
+      },
+      {
+        "name": "phi",
+        "dataref": "sim/flightmodel/position/phi",
+        "scale": 0.017453292519943295,
+        "offset_at_start": false
+      },
+      {
+        "name": "theta",
+        "dataref": "sim/flightmodel/position/theta",
+        "scale": 0.017453292519943295,
+        "offset_at_start": false
+      },
+      {
+        "name": "psi",
+        "dataref": "sim/flightmodel/position/psi",
+        "scale": 0.017453292519943295,
+        "offset_at_start": false,
+        "wrap_pi": true
+      },
+      {
+        "name": "VT",
+        "dataref": "sim/flightmodel/position/true_airspeed",
+        "scale": 1,
+        "offset_at_start": false
+      },
+      {
+        "name": "alpha",
+        "value": 0
+      },
+      {
+        "name": "beta",
+        "value": 0
+      },
+      {
+        "name": "xN",
+        "dataref": "sim/flightmodel/position/local_z",
+        "scale": -1,
+        "offset_at_start": true
+      },
+      {
+        "name": "xE",
+        "dataref": "sim/flightmodel/position/local_x",
+        "scale": 1,
+        "offset_at_start": true
+      },
+      {
+        "name": "alt",
+        "dataref": "sim/flightmodel/position/y_agl",
+        "scale": 1,
+        "offset_at_start": false
+      }
+    ]
+  },
+  "mcu_to_xplane": {
+    "port": "COM9",
+    "header_bytes": [
+      85,
+      170
+    ],
+    "fields": [
+      {
+        "name": "throttle",
+        "dataref": "sim/flightmodel/engine/ENGN_thro",
+        "scale": 1,
+        "clamp": [
+          0,
+          1
+        ],
+        "is_array8": true
+      },
+      {
+        "name": "elevator",
+        "dataref": "sim/joystick/yoke_pitch_ratio",
+        "scale": 2.29199,
+        "clamp": [
+          -1,
+          1
+        ]
+      },
+      {
+        "name": "aileron",
+        "dataref": "sim/joystick/yoke_roll_ratio",
+        "scale": 2.29199,
+        "clamp": [
+          -1,
+          1
+        ]
+      },
+      {
+        "name": "rudder",
+        "dataref": "sim/joystick/yoke_heading_ratio",
+        "scale": 2.29199,
+        "clamp": [
+          -1,
+          1
+        ]
+      }
+    ]
+  }
+}

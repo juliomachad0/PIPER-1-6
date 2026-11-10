@@ -47,8 +47,11 @@ config; % Start parameters, models, functions and XPlane connection
 % ------------------------------------------
 
 %% initiate UI to choose waypoints. SIMULACAO HIL MATLAB Bridge
-gui_waypoints_HIL_MB;
+%gui_waypoints_HIL_MB;
 % ------------------------------------------
+
+%% initiate UI to choose waypoints. SIMULACAO HIL Python Bridge
+gui_waypoints_HIL_PB;
 
 %% plots
 % CONFIGURE O QUE PLOTAR EM plots/init_plots.m

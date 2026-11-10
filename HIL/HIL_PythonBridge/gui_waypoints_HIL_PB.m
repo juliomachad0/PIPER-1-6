@@ -21,7 +21,7 @@ function gui_waypoints_HIL()
     % cd(oldDir);
     % addpath(hilDir);
     % addpath(fullfile(hilDir, 'tools'));
-    mdl = 'Guidance_HIL_XPlane';
+    mdl = 'HIL_XPlaneMCU';
     modelPath = fullfile(hilDir, [mdl '.slx']);
     %% PARAMETROS DO VEICULO
     par_aero  = evalin('base', 'par_aero');
@@ -278,9 +278,12 @@ function gui_waypoints_HIL()
                       size(wp_interp,1));
             end
             assignin('base','WPs', wp_interp);
+            if ~evalin('base', 'exist(''HIL_MCUport'', ''var'')')
+                assignin('base', 'HIL_MCUport', 'COM9');
+            end
 
-            % Limpa serial pra forcar re-upload de WPs
-            try, evalin('base','clear hil_serial_step_guiagem'); catch, end
+            % Limpa funcoes para forcar re-upload e nova conexao
+            try, evalin('base','clear hil_serial_udp'); catch, end
             try
                 sp_tmp = serialportfind;
                 if ~isempty(sp_tmp), delete(sp_tmp); end
@@ -289,10 +292,14 @@ function gui_waypoints_HIL()
 
             % Roda modelo HIL
             if ~exist(modelPath,'file')
-                error('Modelo nao encontrado: %s. Rode criar_modelo_HIL_guiagem primeiro.', modelPath);
+                error('Modelo nao encontrado: %s.', modelPath);
             end
             load_system(modelPath);
-            set_param(mdl, 'StopTime', num2str(fldStopTime.Value));
+
+            % Salva duracao no workspace e adiciona 2s no StopTime do Simulink (Slide 3)
+            HIL_dur = fldStopTime.Value;
+            assignin('base', 'HIL_duration', HIL_dur);
+            set_param(mdl, 'StopTime', num2str(HIL_dur + 2));
 
             out = sim(mdl);
             assignin('base','out', out);
