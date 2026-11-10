@@ -11,8 +11,8 @@
       "dtr": false,
       "rts": false
     },
-    "freq_xplane_to_mcu_hz": 100,
-    "freq_mcu_to_xplane_hz": 100,
+    "freq_xplane_to_mcu_hz": 20,
+    "freq_mcu_to_xplane_hz": 20,
     "duration_sec": 80,
     "status_file": "converter_status.json",
     "log_file": "converter_u_log.csv"

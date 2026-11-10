@@ -88,9 +88,10 @@ class XPCClient:
         except Exception:
             pass
 
-    def send_ctrl(self, elev: float, ail: float, rud: float, thr: float, gear: float = 0.0, flaps: float = -998.0, ac: int = 0):
+    def send_ctrl(self, elev: float, ail: float, rud: float, thr: float, gear: float = -998.0, flaps: float = -998.0, speedbrakes: float = -998.0, ac: int = 0):
         """Envia comando CTRL do XPlaneConnect (sobrescreve comandos de voo no simulador com garantia de controle)."""
-        buf = struct.pack("<4sx6fb", b"CTRL", float(elev), float(ail), float(rud), float(thr), float(gear), float(flaps), int(ac))
+        # Formato XPC CTRL: 'CTRL' + 1 byte pad + 7 floats (elev, ail, rud, thr, gear, flaps, speedbrakes) + 1 byte ac = 34 bytes
+        buf = struct.pack("<4sx7fb", b"CTRL", float(elev), float(ail), float(rud), float(thr), float(gear), float(flaps), float(speedbrakes), int(ac))
         try:
             self.sock.sendto(buf, self.dest)
         except Exception:
@@ -116,7 +117,7 @@ def update_status(status_file_path: str, running: bool, status: int, message: st
 
 
 def wrap_to_pi(val: float) -> float:
-    return math.fmod(val + math.pi, 2.0 * math.pi) - math.pi
+    return (val + math.pi) % (2.0 * math.pi) - math.pi
 
 
 def run_converter(config_path: str):
@@ -318,12 +319,14 @@ def run_converter(config_path: str):
                         ctrl_map = {fld.get("name", ""): (float(raw_val) * float(fld.get("scale", 1.0))) for fld, raw_val in zip(fields, raw_floats)}
                         if "elevator" in ctrl_map and "aileron" in ctrl_map and "throttle" in ctrl_map:
                             xpc.send_ctrl(
-                                elev=ctrl_map["elevator"],
-                                ail=ctrl_map["aileron"],
-                                rud=ctrl_map.get("rudder", 0.0),
-                                thr=ctrl_map["throttle"],
-                                gear=0.0,
-                                flaps=-998.0
+                                elev=max(-1.0, min(1.0, float(ctrl_map["elevator"]))),
+                                ail=max(-1.0, min(1.0, float(ctrl_map["aileron"]))),
+                                rud=max(-1.0, min(1.0, float(ctrl_map.get("rudder", 0.0)))),
+                                thr=max(0.0, min(1.0, float(ctrl_map["throttle"]))),
+                                gear=-998.0,
+                                flaps=-998.0,
+                                speedbrakes=-998.0,
+                                ac=0
                             )
 
                         log_writer.writerow(log_row)

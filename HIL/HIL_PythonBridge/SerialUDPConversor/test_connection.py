@@ -75,8 +75,8 @@ class XPCClient:
             values.append(row[0] if len(row) > 0 else 0.0)
         return values
 
-    def send_ctrl(self, elev: float, ail: float, rud: float, thr: float, gear: float = 0.0, flaps: float = -998.0, ac: int = 0):
-        buf = struct.pack("<4sx6fb", b"CTRL", float(elev), float(ail), float(rud), float(thr), float(gear), float(flaps), int(ac))
+    def send_ctrl(self, elev: float, ail: float, rud: float, thr: float, gear: float = -998.0, flaps: float = -998.0, speedbrakes: float = -998.0, ac: int = 0):
+        buf = struct.pack("<4sx7fb", b"CTRL", float(elev), float(ail), float(rud), float(thr), float(gear), float(flaps), float(speedbrakes), int(ac))
         try:
             self.sock.sendto(buf, self.dest)
         except Exception:
@@ -133,6 +133,35 @@ def test_xplane(cfg: dict) -> bool:
     print(f"  - Roll (phi):                 {phi:.2f} deg")
     print(f"  - Pitch (theta):              {theta:.2f} deg")
     print(f"  - Heading (psi):              {psi:.2f} deg")
+    return True
+
+
+def test_xplane_actuators(cfg: dict) -> bool:
+    print("\n" + "="*60)
+    print(" TESTE DE MOVIMENTACAO DE ATUADORES NO X-PLANE")
+    print("="*60)
+    c = cfg.get("config", {})
+    xp_ip = c.get("xplane_ip", "127.0.0.1")
+    xp_port = int(c.get("xplane_port", 49009))
+    xpc = XPCClient(xp_ip, xp_port, timeout=1.0)
+
+    print("1) Enviando Aileron +0.8 (curva para a direita) por 2 segundos...")
+    for _ in range(20):
+        xpc.send_ctrl(elev=0.0, ail=0.8, rud=0.0, thr=0.5)
+        time.sleep(0.1)
+
+    print("2) Enviando Aileron -0.8 (curva para a esquerda) por 2 segundos...")
+    for _ in range(20):
+        xpc.send_ctrl(elev=0.0, ail=-0.8, rud=0.0, thr=0.5)
+        time.sleep(0.1)
+
+    print("3) Retornando superficies ao centro (aileron = 0.0)...")
+    for _ in range(10):
+        xpc.send_ctrl(elev=0.0, ail=0.0, rud=0.0, thr=0.5)
+        time.sleep(0.1)
+
+    xpc.close()
+    print("[SUCESSO] Comandos CTRL enviados ao X-Plane. Olhe para a aeronave ou manche no X-Plane para confirmar o movimento.")
     return True
 
 
@@ -372,10 +401,11 @@ def main():
     print("  [2] Testar conexao com MCU (Serial COM)")
     print("  [3] Dry-Run do loop HIL em tempo real (5 segundos no terminal)")
     print("  [4] Executar TODOS os testes sequencialmente")
+    print("  [5] Testar movimentacao fisica de ailerons no X-Plane (send_ctrl)")
     print("  [0] Sair")
     
     try:
-        choice = input("\nOpcao [1-4, default=4]: ").strip()
+        choice = input("\nOpcao [1-5, default=4]: ").strip()
     except Exception:
         choice = "4"
 
@@ -385,6 +415,8 @@ def main():
         test_mcu_serial(cfg)
     elif choice == "3":
         test_loop_dry_run(cfg, args.duration)
+    elif choice == "5":
+        test_xplane_actuators(cfg)
     elif choice in ("4", ""):
         ok_xp = test_xplane(cfg)
         ok_mcu = test_mcu_serial(cfg)

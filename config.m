@@ -195,7 +195,7 @@ assignin('base','HIL_MCUport', HIL_MCUport);
 HIL_MCUbaud = 500000;
 assignin('base','HIL_MCUbaud', HIL_MCUbaud);
 %% frequency of the HIL loop (Hz) - Simulink
-HIL_loop_freq = 100; % frequency of the HIL loop (Hz) - Simulink
+HIL_loop_freq = 20; % frequency of the HIL loop (Hz) - Simulink
 fprintf('  HIL loop frequency: %d Hz\n', HIL_loop_freq);
 %frequency of the HIL loop (Hz) - python conversor 
 mcu_to_xplane_freq = HIL_loop_freq; % frequency to python conversor reads mcu and sends to Xplane
